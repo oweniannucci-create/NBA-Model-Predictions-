@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load your data
-df = pd.read_csv("TeamStatistics.csv")
+df = pd.read_csv("Data/TeamStatistics.csv")
 
 
 numeric_cols = df.select_dtypes(include="number").columns
