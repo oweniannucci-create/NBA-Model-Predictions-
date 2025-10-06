@@ -57,14 +57,18 @@ games_df = pd.read_csv("Data/Games.csv")
 
 
 # Merge the averages back into the season's games
-merged_df = games_df.merge(season_team_averages, on="hometeamName==teamName", how="left")
-
+merged_df = games_df.merge(
+    season_team_averages,
+    left_on="hometeamName",
+    right_on="teamName",
+    how="left"
+)
 show(merged_df)
 
 
 
 
 
-show(season_team_averages)
+#show(season_team_averages)
 
 
