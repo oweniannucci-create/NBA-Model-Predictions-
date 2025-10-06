@@ -68,7 +68,7 @@ df = df.sort_values(['SEASON', 'ROUND_NUMBER', 'OVERALL_PICK'])
 pd.set_option('display.max_rows', None)
 
 # Print the full draft table
-print(df)
+# print(df)
 
 # Count how many draft picks each team has made
 team_pick_counts = df['TEAM_NAME'].value_counts()
