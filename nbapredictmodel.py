@@ -1,6 +1,6 @@
 import pandas as pd
 
-df = pd.read_csv("nba_games.csv")
+df = pd.read_csv("Data/TeamStatistics.csv")
 
 # Convert gameDate to datetime
 df['gameDate'] = pd.to_datetime(df['gameDate'])
