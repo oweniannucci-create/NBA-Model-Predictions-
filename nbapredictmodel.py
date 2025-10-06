@@ -1,4 +1,5 @@
 import pandas as pd
+from pandasgui import show
 
 df = pd.read_csv("Data/TeamStatistics.csv")
 
@@ -49,6 +50,6 @@ season_team_averages.to_csv("nba_season_team_averages.csv", index=False)
 
 print(season_team_averages)
 
-
+show(season_team_averages)
 
 
