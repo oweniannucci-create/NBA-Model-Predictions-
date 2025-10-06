@@ -64,25 +64,24 @@ season_games = games_df[games_df["gameDate"].dt.year == year].copy()
 # Calculate the team averages *just for that season*
 team_avg_df = (
     season_games
-    .groupby("teamName")
+    .groupby("hometeamName")
     .mean(numeric_only=True)
     .reset_index()
 )
 
 # Optional: rename columns to make clear these are averages
 team_avg_df = team_avg_df.add_suffix("_avg")
-team_avg_df = team_avg_df.rename(columns={"teamName_avg": "teamName"})
+team_avg_df = team_avg_df.rename(columns={"hometeamName_avg": "hometeamName"})
 
 # Merge the averages back into the season's games
-merged_df = season_games.merge(team_avg_df, on="teamName", how="left")
+merged_df = season_games.merge(team_avg_df, on="hometeamName", how="left")
 
 print(merged_df.head())
 
 merged_df = (
     season_games
-    .merge(team_avg_df, on="teamName", how="left", suffixes=("", "_teamAvg"))
-    .merge(team_avg_df, left_on="opponentTeamName", right_on="teamName", how="left", suffixes=("", "_oppAvg"))
-)
+    .merge(team_avg_df, on="hometeamName", how="left", suffixes=("", "_teamAvg"))
+    .merge(team_avg_df, left_on="awayteamName", right_on="hometeamName", how="left", suffixes=("", "_oppAvg")))
 
 
 
