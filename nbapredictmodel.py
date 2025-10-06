@@ -50,6 +50,21 @@ season_team_averages.to_csv("nba_season_team_averages.csv", index=False)
 
 print(season_team_averages)
 
+
+# Load your full dataset
+games_df = pd.read_csv("Data/Games.csv")
+
+
+
+# Merge the averages back into the season's games
+merged_df = games_df.merge(season_team_averages, on="hometeamName==teamName", how="left")
+
+show(merged_df)
+
+
+
+
+
 show(season_team_averages)
 
 
