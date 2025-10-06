@@ -1,15 +1,54 @@
 import pandas as pd
 
-# Load your data
-df = pd.read_csv("Data/TeamStatistics.csv")
+df = pd.read_csv("nba_games.csv")
 
+# Convert gameDate to datetime
+df['gameDate'] = pd.to_datetime(df['gameDate'])
 
-numeric_cols = df.select_dtypes(include="number").columns
+# Optional: create a season column
+# Assuming NBA season starts in October and ends in June
+def get_season(date):
+    if date.month >= 10:  # October or later
+        return f"{date.year}-{date.year+1}"
+    else:  # Jan-June
+        return f"{date.year-1}-{date.year}"
 
-# Group by teamName and calculate averages
-team_averages = df.groupby("teamName")[numeric_cols].mean().round(2)
+df['season'] = df['gameDate'].apply(get_season)
 
-print(team_averages.head())
+# Stats to average
+stats = [
+    "teamScore",
+    "assists",
+    "reboundsDefensive",
+    "reboundsOffensive",
+    "reboundsTotal",
+    "steals",
+    "blocks",
+    "turnovers",
+    "foulsPersonal",
+    "fieldGoalsMade",
+    "fieldGoalsAttempted",
+    "fieldGoalsPercentage",
+    "threePointersMade",
+    "threePointersAttempted",
+    "threePointersPercentage",
+    "freeThrowsMade",
+    "freeThrowsAttempted",
+    "freeThrowsPercentage",
+    "plusMinusPoints"
+]
+
+# Group by season and team
+season_team_averages = df.groupby(["season", "teamName"])[stats].mean().reset_index()
+
+# Round for readability
+season_team_averages = season_team_averages.round(2)
+
+# Save to CSV
+season_team_averages.to_csv("nba_season_team_averages.csv", index=False)
+
+print(season_team_averages)
+
 
 
 

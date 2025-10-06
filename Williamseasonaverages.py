@@ -34,7 +34,8 @@ stats = [
     "threePointersPercentage",
     "freeThrowsMade",
     "freeThrowsAttempted",
-    "freeThrowsPercentage"
+    "freeThrowsPercentage",
+    "plusMinusPoints"
 ]
 
 # Group by season and team
