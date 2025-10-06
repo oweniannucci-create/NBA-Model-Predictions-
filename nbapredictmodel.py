@@ -1,4 +1,5 @@
 import pandas as pd
+from pandasgui import show
 
 df = pd.read_csv("Data/TeamStatistics.csv")
 
@@ -49,6 +50,7 @@ season_team_averages.to_csv("nba_season_team_averages.csv", index=False)
 
 print(season_team_averages)
 
+<<<<<<< HEAD
 # Load your full dataset
 games_df = pd.read_csv("Data/Games.csv")
 
@@ -85,5 +87,8 @@ merged_df = (
 
 
 
+=======
+show(season_team_averages)
+>>>>>>> b30bd5213ca1699542ee41e67c69062cbc725734
 
 
