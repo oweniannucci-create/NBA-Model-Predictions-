@@ -12,6 +12,8 @@ draft_df = draft_history.get_data_frames()[0]
 draft_all_years = draft_df[(draft_df['SEASON'].astype(int) >= 1957) &
                             (draft_df['SEASON'].astype(int) <= 2025)]
 
-# Check the first few rows
+
+
+ #Check the first few rows
 print(draft_all_years.head())
 show(draft_all_years)
