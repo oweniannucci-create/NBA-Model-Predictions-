@@ -55,26 +55,17 @@
 from nba_api.stats.endpoints import DraftHistory
 import pandas as pd
 
-# Get the full draft history
 all_draft = DraftHistory().get_data_frames()[0]
 
-# Select relevant columns
 df = all_draft[['PLAYER_NAME', 'SEASON', 'ROUND_NUMBER', 'OVERALL_PICK', 'TEAM_NAME']]
 
-# Optional: sort by season, round, and pick
 df = df.sort_values(['SEASON', 'ROUND_NUMBER', 'OVERALL_PICK'])
 
-# Make sure pandas shows all rows
 pd.set_option('display.max_rows', None)
 
-# Print the full draft table
-# print(df)
-
-# Count how many draft picks each team has made
 team_pick_counts = df['TEAM_NAME'].value_counts()
 
 print(team_pick_counts)
-# Count how many draft picks each team has made
 team_pick_counts = df['TEAM_NAME'].value_counts()
 
 print(team_pick_counts)
@@ -85,33 +76,29 @@ for team in sorted(unique_teams):
     print(f"\n=== {team} ({len(team_draft)} picks) ===")
     print(team_draft[['SEASON', 'PLAYER_NAME', 'ROUND_NUMBER', 'OVERALL_PICK']])
 
-# Group by team and all rounds, count picks
 team_round_counts = df.groupby(['TEAM_NAME', 'ROUND_NUMBER']).size().unstack(fill_value=0)
 
-# Add a 'Total' column summing all rounds
 team_round_counts['Total'] = team_round_counts.sum(axis=1)
 
-# Sort by total picks descending
 team_round_counts = team_round_counts.sort_values('Total', ascending=False)
 
-# Print full table
 print(team_round_counts.to_string())
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+#
+# round_data = team_round_counts.drop(columns=['Total'])
+#
+# top_10 = round_data.loc[team_round_counts['Total'].nlargest(10).index]
+#
+# ax = top_10.plot(kind='bar', stacked=True, figsize=(12, 7), colormap='tab20')
+#
+# plt.title('NBA Draft Picks by Team and Round (Top 10 Teams)')
+# plt.xlabel('Team')
+# plt.ylabel('Number of Draft Picks')
+# plt.legend(title='Draft Round', bbox_to_anchor=(1.05, 1), loc='upper left')
+# plt.tight_layout()
 
-# Use the previously created DataFrame: team_round_counts
-# Drop the 'Total' column since we only want rounds in the chart
-round_data = team_round_counts.drop(columns=['Total'])
-
-# To keep the chart readable, let's limit to the top 10 teams by total picks
-top_10 = round_data.loc[team_round_counts['Total'].nlargest(10).index]
-
-# Plot stacked bar chart
-ax = top_10.plot(kind='bar', stacked=True, figsize=(12, 7), colormap='tab20')
-
-plt.title('NBA Draft Picks by Team and Round (Top 10 Teams)')
-plt.xlabel('Team')
-plt.ylabel('Number of Draft Picks')
-plt.legend(title='Draft Round', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.tight_layout()
-plt.show()
+# def team_pick_counts (team):
+#     team_pick_counts = df[df['TEAM_NAME'] == team]
+#
+# print(team_pick_counts('Bulls'))
