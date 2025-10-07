@@ -70,7 +70,7 @@ def get_teamaveragestatistics_from_year():
 
 
 
-    show(season_team_averages)
     return season_team_averages
+
 
 
