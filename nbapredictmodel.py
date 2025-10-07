@@ -1,3 +1,5 @@
+
+
 import pandas as pd
 from pandasgui import show
 
@@ -52,14 +54,14 @@ print(season_team_averages)
 
 
 # Load your full dataset
-games_df = pd.read_csv("Data/Games.csv")
+#ames_df = pd.read_csv("Data/Games.csv")
 
 
 
 # Merge the averages back into the season's games
-merged_df = games_df.merge(season_team_averages, on="hometeamName==teamName", how="left")
+#merged_df = games_df.merge(season_team_averages, on="hometeamName==teamName", how="left")
 
-show(merged_df)
+#show(merged_df)
 
 
 
