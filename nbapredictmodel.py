@@ -54,39 +54,21 @@ print(season_team_averages)
 # Load your full dataset
 games_df = pd.read_csv("Data/Games.csv")
 
-# Filter for one specific season, for example 2024-25
-games_df["gameDate"] = pd.to_datetime(games_df["gameDate"])
 
-# Filter for a specific year, e.g., 2024
-year = 2024
-season_games = games_df[games_df["gameDate"].dt.year == year].copy()
-
-# Calculate the team averages *just for that season*
-team_avg_df = (
-    season_games
-    .groupby("hometeamName")
-    .mean(numeric_only=True)
-    .reset_index()
-)
-
-# Optional: rename columns to make clear these are averages
-team_avg_df = team_avg_df.add_suffix("_avg")
-team_avg_df = team_avg_df.rename(columns={"hometeamName_avg": "hometeamName"})
 
 # Merge the averages back into the season's games
-merged_df = season_games.merge(team_avg_df, on="hometeamName", how="left")
-
-print(merged_df.head())
-
-merged_df = (
-    season_games
-    .merge(team_avg_df, on="hometeamName", how="left", suffixes=("", "_teamAvg"))
-    .merge(team_avg_df, left_on="awayteamName", right_on="hometeamName", how="left", suffixes=("", "_oppAvg")))
-
+merged_df = games_df.merge(
+    season_team_averages,
+    left_on="hometeamName",
+    right_on="teamName",
+    how="left"
+)
+show(merged_df)
 
 
 
 
-show(season_team_averages)
+
+#show(season_team_averages)
 
 
