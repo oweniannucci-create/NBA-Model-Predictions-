@@ -1,5 +1,5 @@
 # import pandas as pd
-# from pandasgui import show
+from pandasgui import show
 #
 # df = pd.read_csv("Data/TeamStatistics.csv")
 #
@@ -55,34 +55,34 @@
 from nba_api.stats.endpoints import DraftHistory
 import pandas as pd
 
-all_draft = DraftHistory().get_data_frames()[0]
-
-df = all_draft[['PLAYER_NAME', 'SEASON', 'ROUND_NUMBER', 'OVERALL_PICK', 'TEAM_NAME']]
-
-df = df.sort_values(['SEASON', 'ROUND_NUMBER', 'OVERALL_PICK'])
-
-pd.set_option('display.max_rows', None)
-
-team_pick_counts = df['TEAM_NAME'].value_counts()
-
-print(team_pick_counts)
-team_pick_counts = df['TEAM_NAME'].value_counts()
-
-print(team_pick_counts)
-unique_teams = df['TEAM_NAME'].dropna().unique()
-
-for team in sorted(unique_teams):
-    team_draft = df[df['TEAM_NAME'] == team]
-    print(f"\n=== {team} ({len(team_draft)} picks) ===")
-    print(team_draft[['SEASON', 'PLAYER_NAME', 'ROUND_NUMBER', 'OVERALL_PICK']])
-
-team_round_counts = df.groupby(['TEAM_NAME', 'ROUND_NUMBER']).size().unstack(fill_value=0)
-
-team_round_counts['Total'] = team_round_counts.sum(axis=1)
-
-team_round_counts = team_round_counts.sort_values('Total', ascending=False)
-
-print(team_round_counts.to_string())
+# all_draft = DraftHistory().get_data_frames()[0]
+#
+# df = all_draft[['PLAYER_NAME', 'SEASON', 'ROUND_NUMBER', 'OVERALL_PICK', 'TEAM_NAME']]
+#
+# df = df.sort_values(['SEASON', 'ROUND_NUMBER', 'OVERALL_PICK'])
+#
+# pd.set_option('display.max_rows', None)
+#
+# team_pick_counts = df['TEAM_NAME'].value_counts()
+#
+# print(team_pick_counts)
+# team_pick_counts = df['TEAM_NAME'].value_counts()
+#
+# print(team_pick_counts)
+# unique_teams = df['TEAM_NAME'].dropna().unique()
+#
+# for team in sorted(unique_teams):
+#     team_draft = df[df['TEAM_NAME'] == team]
+#     print(f"\n=== {team} ({len(team_draft)} picks) ===")
+#     print(team_draft[['SEASON', 'PLAYER_NAME', 'ROUND_NUMBER', 'OVERALL_PICK']])
+#
+# team_round_counts = df.groupby(['TEAM_NAME', 'ROUND_NUMBER']).size().unstack(fill_value=0)
+#
+# team_round_counts['Total'] = team_round_counts.sum(axis=1)
+#
+# team_round_counts = team_round_counts.sort_values('Total', ascending=False)
+#
+# print(team_round_counts.to_string())
 
 # import matplotlib.pyplot as plt
 #
@@ -102,3 +102,35 @@ print(team_round_counts.to_string())
 #     team_pick_counts = df[df['TEAM_NAME'] == team]
 #
 # print(team_pick_counts('Bulls'))
+
+import pandas as pd
+from nba_api.stats.endpoints import DraftHistory
+
+def get_average_draft_data():
+
+    draft_data = DraftHistory().get_data_frames()[0]
+
+    df = draft_data[['TEAM_CITY', 'TEAM_NAME', 'SEASON', 'OVERALL_PICK']].copy()
+    df['team_name'] = df['TEAM_CITY'] + ' ' + df['TEAM_NAME']
+    df['draft_year'] = df['SEASON']
+
+
+    summary_df = (
+        df.groupby(['team_name', 'draft_year'])
+        .agg(
+            number_of_picks=('OVERALL_PICK', 'count'),
+            average_overall_pick=('OVERALL_PICK', 'mean')
+        )
+        .reset_index()
+        .sort_values(['team_name', 'draft_year'], ascending=[True, False])
+    )
+
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', 200)
+    pd.set_option('display.colheader_justify', 'center')
+
+    print(summary_df)
+
+    return summary_df
+
