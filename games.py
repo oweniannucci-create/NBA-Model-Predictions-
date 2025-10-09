@@ -27,4 +27,26 @@ df.to_csv("games_cleaned.csv", index=False)
 print("Columns dropped and 'season' column added successfully!")
 print(df.head())
 
+
+# Load your dataset
+df = pd.read_csv("games.csv")
+
+# Standardize column names just in case (lowercase all)
+df.columns = df.columns.str.lower()
+
+# Convert winner column into 1 (home team) or 0 (away team)
+df["winner_binary"] = df.apply(
+    lambda row: 1 if row["winner"] == row["hometeamname"] else 0, axis=1
+)
+
+# (Optional) drop the original winner column
+# df = df.drop(columns=["winner"])
+
+# Save the updated CSV
+df.to_csv("games_with_winner_binary.csv", index=False)
+
+print("Converted 'winner' column to binary (1 = home win, 0 = away win).")
+print(df[["hometeamname", "awayteamname", "winner", "winner_binary"]].head())
+
+
 show (df)
