@@ -1,5 +1,5 @@
 import pandas as pd
-
+from pandasgui import show
 # Load your dataset
 df = pd.read_csv("Data/Games.csv")
 
@@ -26,3 +26,5 @@ df.to_csv("games_cleaned.csv", index=False)
 
 print("Columns dropped and 'season' column added successfully!")
 print(df.head())
+
+show (df)
