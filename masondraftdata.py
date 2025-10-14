@@ -98,7 +98,7 @@ import pandas as pd
 # plt.legend(title='Draft Round', bbox_to_anchor=(1.05, 1), loc='upper left')
 # plt.tight_layout()
 
-# def team_pick_counts (team):
+# def team_pick_counts (team):bn
 #     team_pick_counts = df[df['TEAM_NAME'] == team]
 #
 # print(team_pick_counts('Bulls'))
@@ -131,6 +131,8 @@ def get_average_draft_data():
     pd.set_option('display.colheader_justify', 'center')
 
     print(summary_df)
+    show(summary_df)
 
     return summary_df
 
+get_average_draft_data()
