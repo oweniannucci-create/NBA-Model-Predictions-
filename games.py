@@ -46,3 +46,5 @@ print("Converted 'winner' column to binary (1 = home win, 0 = away win).")
 print(df[["hometeamname", "awayteamname", "winner", "winner_binary"]].head())
 
 show (df)
+
+print (df.info())

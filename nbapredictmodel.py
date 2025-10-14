@@ -66,9 +66,7 @@ def get_teamaveragestatistics_from_year():
 
     #show(merged_df)
 
-
-
-
+    print(season_team_averages.info())
 
     return season_team_averages
 
