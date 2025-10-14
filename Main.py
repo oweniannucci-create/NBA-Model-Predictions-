@@ -26,7 +26,7 @@ def build_nba_prediction_model():
 
     # Convert winner column into binary (1 = home win, 0 = away win)
     df_games["winner_binary"] = df_games.apply(
-        lambda row: 1 if row["winner"] == row["homeTeamId"] else 0, axis=1
+        lambda row: 1 if row["winner"] == row["hometeamid"] else 0, axis=1
     )
 
     # ===================== 2️⃣ LOAD AND AVERAGE TEAM STATISTICS =====================
