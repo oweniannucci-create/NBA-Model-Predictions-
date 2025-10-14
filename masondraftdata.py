@@ -134,4 +134,4 @@ def get_average_draft_data():
 
     return summary_df
 
-get_average_draft_data()
+
