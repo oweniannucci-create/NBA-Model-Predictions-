@@ -98,7 +98,7 @@ import pandas as pd
 # plt.legend(title='Draft Round', bbox_to_anchor=(1.05, 1), loc='upper left')
 # plt.tight_layout()
 
-# def team_pick_counts (team):
+# def team_pick_counts (team):bn
 #     team_pick_counts = df[df['TEAM_NAME'] == team]
 #
 # print(team_pick_counts('Bulls'))
@@ -112,17 +112,16 @@ def get_average_draft_data():
 
     df = draft_data[['TEAM_CITY', 'TEAM_NAME', 'SEASON', 'OVERALL_PICK']].copy()
     df['team_name'] = df['TEAM_CITY'] + ' ' + df['TEAM_NAME']
-    df['draft_year'] = df['SEASON']
 
 
     summary_df = (
-        df.groupby(['team_name', 'draft_year'])
+        df.groupby(['team_name', 'SEASON'])
         .agg(
             number_of_picks=('OVERALL_PICK', 'count'),
             average_overall_pick=('OVERALL_PICK', 'mean')
         )
         .reset_index()
-        .sort_values(['team_name', 'draft_year'], ascending=[True, False])
+        .sort_values(['team_name', 'SEASON'], ascending=[True, False])
     )
 
     pd.set_option('display.max_rows', None)
@@ -131,6 +130,8 @@ def get_average_draft_data():
     pd.set_option('display.colheader_justify', 'center')
 
     print(summary_df)
+    show(summary_df)
 
     return summary_df
+
 
