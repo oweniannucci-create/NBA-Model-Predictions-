@@ -28,9 +28,6 @@ print("Columns dropped and 'season' column added successfully!")
 print(df.head())
 
 
-# Load your dataset
-df = pd.read_csv("Data/Games.csv")
-
 # Standardize column names just in case (lowercase all)
 df.columns = df.columns.str.lower()
 
