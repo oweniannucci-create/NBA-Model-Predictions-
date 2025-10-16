@@ -1,3 +1,8 @@
+from nba_api.stats.endpoints import DraftHistory
+import pandas as pd
+#from pandasgui import show
+
+
 def get_average_draft_data():
 
     draft_data = DraftHistory().get_data_frames()[0]
@@ -22,7 +27,7 @@ def get_average_draft_data():
     pd.set_option('display.colheader_justify', 'center')
 
     #print(summary_df)
-    show(summary_df)
+    #show(summary_df)
 
     return summary_df
 
@@ -52,8 +57,8 @@ def get_cleaned_games_with_winner_column():
     # Save the cleaned version to a new file
     df.to_csv("games_cleaned.csv", index=False)
 
-    print("Columns dropped and 'season' column added successfully!")
-    print(df.head())
+    #print("Columns dropped and 'season' column added successfully!")
+    #print(df.head())
 
 
     # Standardize column names just in case (lowercase all)
@@ -70,17 +75,16 @@ def get_cleaned_games_with_winner_column():
     # Save the updated CSV
     df.to_csv("games_with_winner_binary.csv", index=False)
 
-    print("Converted 'winner' column to binary (1 = home win, 0 = away win).")
-    print(df[["hometeamname", "awayteamname", "winner", "winner_binary"]].head())
+    #print("Converted 'winner' column to binary (1 = home win, 0 = away win).")
+    #print(df[["hometeamname", "awayteamname", "winner", "winner_binary"]].head())
 
-    show (df)
+    #show (df)
 
-    print (df.info())
+    #print (df.info())
+    return df
 
 
 def get_teamaveragestatistics_from_year():
-    import pandas as pd
-    from pandasgui import show
 
     df = pd.read_csv("Data/TeamStatistics.csv")
 
@@ -129,24 +133,10 @@ def get_teamaveragestatistics_from_year():
     # Save to CSV
     season_team_averages.to_csv("nba_season_team_averages.csv", index=False)
 
-    print(season_team_averages)
-
-
-    # Load your full dataset
-    games_df = pd.read_csv("Data/Games.csv")
+    #print(season_team_averages)
 
 
 
-    # Merge the averages back into the season's games
-    # #merged_df = games_df.merge(
-    #     season_team_averages,
-    #     left_on="hometeamName",
-    #     right_on="teamName",
-    #     how="left"
-
-    #show(merged_df)
-
-    print(season_team_averages.info())
 
     return season_team_averages
     return season_team_averages
