@@ -26,7 +26,7 @@ def get_average_draft_data():
     pd.set_option('display.width', 200)
     pd.set_option('display.colheader_justify', 'center')
 
-    print(summary_df)
+    #print(summary_df)
     show(summary_df)
 
     return summary_df
