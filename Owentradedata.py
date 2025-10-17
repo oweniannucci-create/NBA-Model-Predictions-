@@ -7,38 +7,41 @@ import threading
 import queue
 import os
 import datetime
+import sys
 
 # === CONFIG ===
-OUTPUT_FILE = "nba_inferred_trades.csv"
-START_YEAR = 1960
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+OUTPUT_DIR = os.path.join(BASE_DIR, "data", "inferred_trades")
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "nba_inferred_trades.csv")
+START_YEAR = 1970
 END_YEAR = 2026
-SLEEP_TIME = 0.6  # seconds between API calls per thread
-NUM_THREADS = 5   # number of threads to run in parallel
+SLEEP_TIME = 0.6
+NUM_THREADS = 5
 
-# === Load existing trades CSV if exists (auto-resume) ===
+# === Ensure output directory exists ===
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# === Load existing data if it exists ===
 if os.path.exists(OUTPUT_FILE):
     trades_df = pd.read_csv(OUTPUT_FILE)
-    print(f"✅ Loaded existing trade file with {len(trades_df)} rows.")
+    print(f"✅ Loaded existing file with {len(trades_df)} rows: {OUTPUT_FILE}")
 else:
-    trades_df = pd.DataFrame()
+    trades_df = pd.DataFrame(columns=["Player", "From", "To", "Season"])
+    print(f"🆕 Creating new trade file: {OUTPUT_FILE}")
 
-# === Queue for thread tasks (season, team) ===
+# === Build queue of all team-year combos ===
 all_teams = teams.get_teams()
 task_queue = queue.Queue()
 for season in range(START_YEAR, END_YEAR + 1):
     for team in all_teams:
         task_queue.put((season, team))
 
-# === Lock for safely updating main dataframe and progress bar ===
 lock = threading.Lock()
-
-# === Progress bar setup ===
 total_tasks = task_queue.qsize()
 pbar = tqdm(total=total_tasks, desc="Fetching NBA trade data", unit="calls")
 
-# === Thread function ===
 def fetch_trades():
-    global trades_df  # must be first line in the function
+    global trades_df
     local_trades = []
 
     while not task_queue.empty():
@@ -75,23 +78,28 @@ def fetch_trades():
                     })
 
         except Exception as e:
-            print(f"⚠️ {team_name} {season}: {e}")
+            print(f"⚠️ Error fetching {team_name} {season}: {e}")
         finally:
             time.sleep(SLEEP_TIME)
             with lock:
                 pbar.update(1)
 
-    # Merge local trades into main dataframe safely
+    # Merge and write
     if local_trades:
         local_df = pd.DataFrame(local_trades)
         with lock:
             trades_df = pd.concat([trades_df, local_df], ignore_index=True)
-            trades_df.to_csv(OUTPUT_FILE, index=False)
+            trades_df.drop_duplicates(subset=["Player", "Season"], keep="last", inplace=True)
+            trades_df.sort_values(by="Season", ascending=False, inplace=True)
+            try:
+                trades_df.to_csv(OUTPUT_FILE, index=False)
+                print(f"💾 Saved progress ({len(trades_df)} rows) → {OUTPUT_FILE}")
+            except Exception as e:
+                print(f"❌ Could not save CSV: {e}")
+                sys.exit(1)
 
-# === Start timer ===
+# === Run threads ===
 start_time = time.time()
-
-# === Start threads ===
 threads = []
 for _ in range(NUM_THREADS):
     t = threading.Thread(target=fetch_trades)
@@ -103,7 +111,21 @@ for t in threads:
 
 pbar.close()
 
-# === Done ===
+# === Final write + summary ===
+try:
+    trades_df.sort_values(by="Season", ascending=False, inplace=True)
+    trades_df.to_csv(OUTPUT_FILE, index=False)
+    print(f"\n✅ Final CSV saved successfully at:\n{OUTPUT_FILE}")
+except Exception as e:
+    print(f"❌ Final save failed: {e}")
+
 elapsed = time.time() - start_time
-print(f"\n✅ All trade data saved to {OUTPUT_FILE}")
 print(f"⏱ Total runtime: {str(datetime.timedelta(seconds=int(elapsed)))}")
+
+# === Preview first 10 rows ===
+print("\nFirst 10 trades:")
+print(trades_df.head(10))
+
+# === Optional: Summary count per season ===
+print("\nNumber of trades per season:")
+print(trades_df.groupby("Season").size().sort_index(ascending=False))
