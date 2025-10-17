@@ -8,7 +8,7 @@ def get_average_draft_data():
     draft_data = DraftHistory().get_data_frames()[0]
 
     df = draft_data[['TEAM_CITY', 'TEAM_NAME', 'SEASON', 'OVERALL_PICK']].copy()
-    df['team_name'] = df['TEAM_CITY'] + ' ' + df['TEAM_NAME']
+    # df['team_name'] = df['TEAM_CITY'] + ' ' + df['TEAM_NAME']
 
 
     summary_df = (
