@@ -54,10 +54,14 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
 
     # --- 4️⃣ Cleanup ---
     merged = merged.drop_duplicates(subset=['gameid']).reset_index(drop=True)
-
+    columns_to_drop = ["arenaId", "homeTeamCity", "awayTeamCity", "seriesgamenumber", "gamelabel", "gamesublabel",
+                       "attendance", "homescore", "awayscore", "gameid", "gametype"]
+    merged = merged.drop(columns=columns_to_drop, errors="ignore", axis=1)
+    
     merged.to_csv("combined_games_team_draft.csv", index=False)
     print("✅ Combined dataset created successfully: combined_games_team_draft.csv")
     print(f"Shape: {merged.shape}")
+
     return merged
 
 combined_df = combine_game_team_draft_data(games_df, stats_df, draft_df)
