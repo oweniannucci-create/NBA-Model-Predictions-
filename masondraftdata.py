@@ -1,7 +1,7 @@
 # import pandas as pd
 from nba_api.stats.endpoints import DraftHistory
 import pandas as pd
-#from pandasgui import show
+from pandasgui import show
 
 def get_average_draft_data():
 
@@ -12,15 +12,15 @@ def get_average_draft_data():
 
 
     summary_df = (
-        df.groupby(['team_name', 'SEASON'])
+        df.groupby(['TEAM_NAME', 'SEASON'])
         .agg(
             number_of_picks=('OVERALL_PICK', 'count'),
             average_overall_pick=('OVERALL_PICK', 'mean')
         )
         .reset_index()
-        .sort_values(['team_name', 'SEASON  '], ascending=[True, False])
+        .sort_values(['TEAM_NAME','SEASON'], ascending=[True, False])
     )
-
+    summary_df['SEASON'] = summary_df['SEASON'].apply(lambda x: x + '-' + str(int(x) + 1))
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 200)
@@ -31,6 +31,6 @@ def get_average_draft_data():
 
     return summary_df
 
-get_average_draft_data()
+#get_average_draft_data()
 
 
