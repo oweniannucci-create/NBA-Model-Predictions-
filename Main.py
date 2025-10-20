@@ -1,4 +1,8 @@
+from sklearn.metrics import classification_report
+
 import DataFetcher
+from sklearn.model_selection import train_test_split
+import tensorflow as tf
 from pandasgui import show
 
 games_df = DataFetcher.get_cleaned_games_with_winner_column()
@@ -54,7 +58,7 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
 
     # --- 4️⃣ Cleanup ---
     merged = merged.drop_duplicates(subset=['gameid']).reset_index(drop=True)
-    columns_to_drop = ["arenaid", "hometeamcity", "awayteamcity", "seriesgamenumber", "gamelabel", "gamesublabel",
+    columns_to_drop = ["gamedate","arenaid", "hometeamcity", "awayteamcity", "seriesgamenumber", "gamelabel", "gamesublabel",
                        "attendance", "homescore", "awayscore", "gameid", "gametype","winner","hometeamid", "awayteamid","hometeamname", "awayteamname"]
     merged = merged.drop(columns=columns_to_drop, errors="ignore", axis=1)
     
@@ -65,4 +69,32 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
     return merged
 
 combined_df = combine_game_team_draft_data(games_df, stats_df, draft_df)
-show(combined_df)
+
+target = combined_df["winner_binary"]
+predict = combined_df.drop("winner_binary",axis=1)
+
+x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
+
+tensorboard_callback = tf.keras.callbacks.TensorBoard(
+    log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
+    histogram_freq=1,  # How often to log histogram visualizations
+    embeddings_freq=1,  # How often to log embedding visualizations
+    update_freq="epoch",
+)
+
+nn_model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(15,)),
+    tf.keras.layers.Dense(30, activation='relu'),
+    tf.keras.layers.Dense(54, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+
+
+nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
+
+history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+
+y_pred = (nn_model.predict(x_test)>0.5).astype(int)
+
+print(classification_report(y_test,y_pred))
