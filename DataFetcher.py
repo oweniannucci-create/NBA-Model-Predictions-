@@ -38,7 +38,7 @@ def get_cleaned_games_with_winner_column():
 
     # Drop the columns you don't need
     columns_to_drop = ["arenaId", "homeTeamCity", "awayTeamCity","seriesgamenumber","gamelabel","gamesublabel","attendance","homescore","awayscore","gameid","hometeamcity","gametype"]
-    df = df.drop(columns=columns_to_drop, errors="ignore")
+    df = df.drop(columns=columns_to_drop, errors="ignore", axis=1)
 
     # Define a function to assign a season based on the game date
     def assign_season(date_str):
