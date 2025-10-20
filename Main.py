@@ -42,7 +42,7 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
 
     home_draft = home_draft.rename(columns={'home_season': 'prev_season', 'home_team_name': 'hometeamname'})
     away_draft = away_draft.rename(columns={'away_season': 'prev_season', 'away_team_name': 'awayteamname'})
-    show(home_draft)
+  
     # --- 3️⃣ Merge sequentially without suffixes (no collisions possible) ---
     merged = (
         games_df
@@ -54,8 +54,8 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
 
     # --- 4️⃣ Cleanup ---
     merged = merged.drop_duplicates(subset=['gameid']).reset_index(drop=True)
-    columns_to_drop = ["arenaId", "homeTeamCity", "awayTeamCity", "seriesgamenumber", "gamelabel", "gamesublabel",
-                       "attendance", "homescore", "awayscore", "gameid", "gametype"]
+    columns_to_drop = ["arenaid", "hometeamcity", "awayteamcity", "seriesgamenumber", "gamelabel", "gamesublabel",
+                       "attendance", "homescore", "awayscore", "gameid", "gametype","winner","hometeamid", "awayteamid","hometeamname", "awayteamname"]
     merged = merged.drop(columns=columns_to_drop, errors="ignore", axis=1)
     
     merged.to_csv("combined_games_team_draft.csv", index=False)
