@@ -59,7 +59,7 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
     # --- 4️⃣ Cleanup ---
     merged = merged.drop_duplicates(subset=['gameid']).reset_index(drop=True)
     columns_to_drop = ["gamedate","arenaid", "hometeamcity", "awayteamcity", "seriesgamenumber", "gamelabel", "gamesublabel",
-                       "attendance", "homescore", "awayscore", "gameid", "gametype","winner","hometeamid", "awayteamid","hometeamname", "awayteamname"]
+                       "attendance", "homescore", "awayscore", "gameid", "gametype","winner","hometeamid", "awayteamid","hometeamname", "awayteamname", 'season', 'prev_season']
     merged = merged.drop(columns=columns_to_drop, errors="ignore", axis=1)
     
     merged.to_csv("combined_games_team_draft.csv", index=False)
@@ -83,9 +83,8 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 )
 
 nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(15,)),
-    tf.keras.layers.Dense(30, activation='relu'),
-    tf.keras.layers.Dense(54, activation='relu'),
+    tf.keras.layers.Input(shape=(42,)),
+    tf.keras.layers.Dense(84, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
