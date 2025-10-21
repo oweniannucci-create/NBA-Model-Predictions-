@@ -11,7 +11,7 @@ for team in all_teams:
     team_name = team["full_name"]
     print(f"📊 Pulling {team_name}...")
 
-    for season in range(2004, 2014):
+    for season in range(2015, 2026):
         try:
             roster = commonteamroster.CommonTeamRoster(team_id=team_id, season=f"{season}-{str(season+1)[2:]}")
             roster_df = roster.get_data_frames()[0]
@@ -45,5 +45,5 @@ for player, group in all_trades_df.groupby("PLAYER"):
                 "Season": sorted_teams.iloc[i]["Season"]
             })
 
-pd.DataFrame(trades).to_csv("nba_inferred_trades.csv", index=False)
+pd.DataFrame(trades).to_csv("Nba_inferred trades", index=False)
 print(f"💾 Inferred {len(trades)} trades saved to nba_inferred_trades.csv")
