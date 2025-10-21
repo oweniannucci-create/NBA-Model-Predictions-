@@ -12,15 +12,15 @@ def get_average_draft_data():
 
 
     summary_df = (
-        df.groupby(['team_name', 'SEASON'])
+        df.groupby(['TEAM_NAME', 'SEASON'])
         .agg(
             number_of_picks=('OVERALL_PICK', 'count'),
             average_overall_pick=('OVERALL_PICK', 'mean')
         )
         .reset_index()
-        .sort_values(['team_name', 'SEASON'], ascending=[True, False])
+        .sort_values(['TEAM_NAME', 'SEASON'], ascending=[True, False])
     )
-
+    summary_df['SEASON'] = summary_df['SEASON'].apply(lambda x: x + '-' + str(int(x) + 1))
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 200)
@@ -37,8 +37,8 @@ def get_cleaned_games_with_winner_column():
     df = pd.read_csv("Data/Games.csv")
 
     # Drop the columns you don't need
-    columns_to_drop = ["arenaId", "homeTeamCity", "awayTeamCity","seriesgamenumber","gamelabel","gamesublabel","attendance","homescore","awayscore","gameid","hometeamcity","gametype"]
-    df = df.drop(columns=columns_to_drop, errors="ignore")
+    columns_to_drop = ["arenaId", "homeTeamCity", "awayTeamCity","seriesgamenumber","gamelabel","gamesublabel","attendance","homescore","awayscore","gameid","gametype"]
+    df = df.drop(columns=columns_to_drop, errors="ignore", axis=1)
 
     # Define a function to assign a season based on the game date
     def assign_season(date_str):
