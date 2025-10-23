@@ -1,36 +1,44 @@
-# import pandas as pd
-from nba_api.stats.endpoints import DraftHistory
+import requests
 import pandas as pd
+from bs4 import BeautifulSoup
+from io import StringIO
 from pandasgui import show
 
-def get_average_draft_data():
 
-    draft_data = DraftHistory().get_data_frames()[0]
+def fetch_salary_cap_history():
+    url = 'https://www.basketball-reference.com/contracts/salary-cap-history.html'
 
-    df = draft_data[['TEAM_CITY', 'TEAM_NAME', 'SEASON', 'OVERALL_PICK']].copy()
-    # df['team_name'] = df['TEAM_CITY'] + ' ' + df['TEAM_NAME']
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                      'AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/117.0.0.0 Safari/537.36'
+    }
+
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, 'html.parser')
+
+    table = soup.find('table', {'id': 'salary_cap_history'})
+
+    df = pd.read_html(StringIO(str(table)))[0]
+
+    df.columns = ['Year', 'Salary Cap', 'Luxury Tax Threshold', 'Apron']
+
+    for col in ['Salary Cap', 'Luxury Tax Threshold', 'Apron']:
+        df[col] = df[col].replace({r'\$': '', ',': ''}, regex=True).astype(float)
+
+    df['Year'] = df['Year'].str[:4].astype(int)
+    show(df)
+    return df
 
 
-    summary_df = (
-        df.groupby(['TEAM_NAME', 'SEASON'])
-        .agg(
-            number_of_picks=('OVERALL_PICK', 'count'),
-            average_overall_pick=('OVERALL_PICK', 'mean')
-        )
-        .reset_index()
-        .sort_values(['TEAM_NAME','SEASON'], ascending=[True, False])
-    )
-    summary_df['SEASON'] = summary_df['SEASON'].apply(lambda x: x + '-' + str(int(x) + 1))
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 200)
-    pd.set_option('display.colheader_justify', 'center')
+def main():
+    salary_cap_df = fetch_salary_cap_history()
+    print(salary_cap_df)
+    salary_cap_df.to_csv('nba_salary_cap_history.csv', index=False)
+    print("Saved salary cap history to 'nba_salary_cap_history.csv'")
 
-    #print(summary_df)
-    #show(summary_df)
 
-    return summary_df
-
-#get_average_draft_data()
-
+if __name__ == '__main__':
+    main()
 
