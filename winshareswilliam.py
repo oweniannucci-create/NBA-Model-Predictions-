@@ -22,17 +22,29 @@ def get_bbr_winshares(season_end_year=2025):
 
 
 if __name__ == "__main__":
-    print("Fetching Win Shares from Basketball Reference...")
-    for i in range (2000,2025):
-        ws_df = get_bbr_winshares()
-        time.sleep(1)
+    for year in range(2000, 2026):
+        print(f"Fetching Win Shares from Basketball Reference for {year} season...")
 
+        # Fetch data
+        ws_df = get_bbr_winshares(year)
+        time.sleep(1)  # small delay to avoid rate limits if scraping
 
-    # Save results
-    ws_df.to_csv("nba_players_with_winshares.csv", index=False)
+        # Save individual season file
+        file_name = f"nba_players_with_winshares_{year}.csv"
+        ws_df.to_csv(file_name, index=False)
 
-    print("✅ Done! Files saved:")
-    print("- nba_players_with_winshares.csv")
-    print("- nba_team_player_summary.csv")
+        print(f"✅ Done saving {file_name}")
+
+    print("\n🎯 All seasons (2000–2025) have been processed and saved.")
+
+    # Combine all individual season files into one big CSV
+    all_data = pd.concat(
+        [pd.read_csv(f"nba_players_with_winshares_{year}.csv") for year in range(2000, 2026)],
+        ignore_index=True
+    )
+
+    all_data.to_csv("nba_players_with_winshares_all_2000_2025.csv", index=False)
+    print("📁 Combined file saved: nba_players_with_winshares_all_2000_2025.csv")
+
 
 
