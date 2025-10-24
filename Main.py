@@ -1,6 +1,7 @@
 from sklearn.metrics import classification_report
 
 import DataFetcher
+import travel_distance
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
@@ -82,6 +83,11 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
         .merge(home_draft, on=['prev_season', 'hometeamname'], how='left')
         .merge(away_draft, on=['prev_season', 'awayteamname'], how='left')
     )
+    merged["travel_distance_km"] = merged.apply(
+        lambda row: travel_distance.get_distance_between_cities(row["hometeamcity"], row["awayteamcity"]),
+        axis=1
+    )
+    show(merged)
     #home_team_dummies = pd.get_dummies(merged['hometeamname'], prefix='home_team')
     #away_team_dummies = pd.get_dummies(merged['awayteamname'], prefix='away_team')
     #merged = pd.concat([merged, home_team_dummies, away_team_dummies], axis=1)
