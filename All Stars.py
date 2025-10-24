@@ -1,31 +1,48 @@
 import pandas as pd
+import requests
 
-# Wikipedia page with NBA All-Star rosters
-url = "https://en.wikipedia.org/wiki/NBA_All-Star_Game"
+start_year = 2000
+end_year = 2025
+team_year_counts = {}
 
-# Read all tables from the page
-tables = pd.read_html(url)
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+                  'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+                  'Chrome/116.0.0.0 Safari/537.36'
+}
 
-allstars_list = []
+for year in range(start_year, end_year + 1):
+    url = f'https://www.basketball-reference.com/allstar/NBA_{year}.html'
+    res = requests.get(url, headers=headers)
 
-# Loop through tables to find yearly All-Star rosters
-for table in tables:
-    # Only look at tables that contain a 'Starters' or 'Reserves' column
-    if any(col in table.columns for col in ['Starters', 'Reserves']):
-        # Get the year from the first column if possible
-        year = table.iloc[0, 0]
-        # Some tables have multiple rows per year, flatten them
-        starters = table['Starters'].dropna().tolist()
-        reserves = table['Reserves'].dropna().tolist()
-        for player in starters + reserves:
-            allstars_list.append({'Year': year, 'Player': player})
+    if res.status_code != 200:
+        print(f"❌ Could not fetch {year} (status {res.status_code})")
+        continue
 
-# Convert to DataFrame
-df_allstars = pd.DataFrame(allstars_list)
+    tables = pd.read_html(res.text)
 
-# Filter years 2000–2026
-df_allstars = df_allstars[df_allstars['Year'].astype(str).str[:4].astype(int).between(2000, 2026)]
+    # Usually first 2 tables are East/West All-Stars
+    for table in tables[:2]:
+        for _, row in table.iterrows():
+            team = row['Tm'] if 'Tm' in row else row.get('Team', 'Unknown')
+            if pd.isna(team):
+                continue
+            if year not in team_year_counts:
+                team_year_counts[year] = {}
+            if team not in team_year_counts[year]:
+                team_year_counts[year][team] = 0
+            team_year_counts[year][team] += 1
 
-# Save to CSV
-df_allstars.to_csv("nba_allstars_2000_2026.csv", index=False)
-print("✅ Saved All-Star players 2000-2026 to nba_allstars_2000_2026.csv")
+# Only proceed if we have data
+if not team_year_counts:
+    print("❌ No All-Star data fetched. Cannot create CSV.")
+else:
+    rows = []
+    for year in sorted(team_year_counts.keys(), reverse=True):
+        for team, count in team_year_counts[year].items():
+            rows.append({'Year': year, 'Team': team, 'AllStar_Count': count})
+
+    df = pd.DataFrame(rows)
+    df = df.sort_values(by=['Year', 'Team'], ascending=[False, True])
+    df.to_csv('nba_allstars_2000_2025_counts.csv', index=False)
+    print("✅ Saved All-Star counts per team/year to nba_allstars_2000_2025_counts.csv")
