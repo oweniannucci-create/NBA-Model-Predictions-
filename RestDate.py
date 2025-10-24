@@ -1,4 +1,3 @@
-import csv
 import pandas as pd
 from pandasgui import show
 
@@ -18,6 +17,9 @@ all_games = all_games.sort_values(by=['Team', 'gameDate'])
 
 # Intervals
 all_games['RestDays'] = all_games.groupby('Team')['gameDate'].diff().dt.days
+
+output_path = 'Data/Team_RestDays.csv'
+all_games.to_csv(output_path, index=False)
 
 print(all_games)
 show(all_games)
