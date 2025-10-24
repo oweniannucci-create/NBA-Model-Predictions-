@@ -23,8 +23,9 @@ def get_bbr_winshares(season_end_year=2025):
 
 if __name__ == "__main__":
     print("Fetching Win Shares from Basketball Reference...")
-    ws_df = get_bbr_winshares()
-    time.sleep(1)
+    for i in range (2000,2025):
+        ws_df = get_bbr_winshares()
+        time.sleep(1)
 
 
     # Save results
