@@ -56,6 +56,7 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
         .merge(away_draft, on=['prev_season', 'awayteamname'], how='left')
     )
 
+    show(merged)
     # --- 4️⃣ Cleanup ---
     merged = merged.drop_duplicates(subset=['gameid']).reset_index(drop=True)
     columns_to_drop = ["gamedate","arenaid", "hometeamcity", "awayteamcity", "seriesgamenumber", "gamelabel", "gamesublabel",
