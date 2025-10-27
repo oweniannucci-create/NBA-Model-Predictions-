@@ -1,5 +1,6 @@
 from nba_api.stats.endpoints import DraftHistory
 import pandas as pd
+import time
 #from pandasgui import show
 
 
@@ -162,4 +163,40 @@ def get_teamaveragestatistics_from_year():
 
 
     return season_team_averages
-    return season_team_averages
+
+def get_bbr_winshares(season_end_year=2025):
+    """Scrape Win Shares from Basketball Reference advanced stats page."""
+    url = f"https://www.basketball-reference.com/leagues/NBA_{season_end_year}_advanced.html"
+    tables = pd.read_html(url)
+    df = tables[0]
+    df.rename(columns={'Team': 'TEAM_ABBREVIATION'}, inplace=True)
+    return df
+
+
+def get_all_winshares():
+    for year in range(2000, 2026):
+        print(f"Fetching Win Shares from Basketball Reference for {year} season...")
+
+        # Fetch data
+        ws_df = get_bbr_winshares(year)
+        time.sleep(1)  # small delay to avoid rate limits if scraping
+
+        ws_df["Season"]=str(year-1)+'-'+str(year)
+        # Save individual season file
+        file_name = f"nba_players_with_winshares_{year}.csv"
+        ws_df.to_csv(file_name, index=False)
+
+        print(f"✅ Done saving {file_name}")
+
+    print("\n🎯 All seasons (2000–2025) have been processed and saved.")
+
+    all_data = pd.concat(
+        [pd.read_csv(f"nba_players_with_winshares_{year}.csv") for year in range(2000, 2026)],
+        ignore_index=True
+    )
+
+    all_data.to_csv("nba_players_with_winshares_all_2000_2025.csv", index=False)
+    print("📁 Combined file saved: nba_players_with_winshares_all_2000_2025.csv")
+
+
+

@@ -8,10 +8,15 @@ import tensorflow as tf
 import pandas as pd
 from pandasgui import show
 
+
+
+
 games_df = DataFetcher.get_cleaned_games_with_winner_column()
 stats_df = DataFetcher.get_teamaveragestatistics_from_year()
 draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()
+player_stats = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['MP', 'TEAM_ABBREVIATION', 'Season'], ascending=[True, True, True])
+show(player_stats)
 
 print(games_df.info())
 print(stats_df.info())
