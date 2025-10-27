@@ -2,9 +2,9 @@ from sklearn.metrics import classification_report
 
 import DataFetcher
 import travel_distance
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-import tensorflow as tf
+# from sklearn.model_selection import train_test_split
+# from sklearn.preprocessing import StandardScaler
+# import tensorflow as tf
 import pandas as pd
 from pandasgui import show
 
@@ -16,8 +16,6 @@ stats_df = DataFetcher.get_teamaveragestatistics_from_year()
 draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()
 player_stats = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
-show(player_stats)
-
 print(games_df.info())
 print(stats_df.info())
 print(draft_df.info())
@@ -116,29 +114,29 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
 combined_df = combine_game_team_draft_data(games_df, stats_df, draft_df)
 
 #show(combined_df)
-for col in [s.lower() for s in stats]:
-    combined_df[f'diff_{col}'] = combined_df[f'home_{col}'] - combined_df[f'away_{col}']
-
-a_vs_b = combined_df.copy()
-a_vs_b["team_A"] = a_vs_b["hometeamname"]
-a_vs_b["team_B"] = a_vs_b["awayteamname"]
-a_vs_b["label"] = a_vs_b["winner_binary"]
-
-b_vs_a = combined_df.copy()
-b_vs_a["team_A"] = b_vs_a["awayteamname"]
-b_vs_a["team_B"] = b_vs_a["hometeamname"]
-b_vs_a["label"] = 1 - b_vs_a["winner_binary"]
-b_vs_a[[c for c in a_vs_b.columns if c.startswith("diff_")]]=b_vs_a[[c for c in a_vs_b.columns if c.startswith("diff_")]].apply(lambda x: -x)
-
-a_vs_b = a_vs_b[["team_A", "team_B", "label"] + [c for c in a_vs_b.columns if c.startswith("diff_")]]
-b_vs_a = b_vs_a[["team_A", "team_B", "label"] + [c for c in b_vs_a.columns if c.startswith("diff_")]]
-
-combined = pd.concat([a_vs_b, b_vs_a], ignore_index=True)
-combined = combined.sample(frac=1, random_state=42).reset_index(drop=True)
+# for col in [s.lower() for s in stats]:
+#     combined_df[f'diff_{col}'] = combined_df[f'home_{col}'] - combined_df[f'away_{col}']
+#
+# a_vs_b = combined_df.copy()
+# a_vs_b["team_A"] = a_vs_b["hometeamname"]
+# a_vs_b["team_B"] = a_vs_b["awayteamname"]
+# a_vs_b["label"] = a_vs_b["winner_binary"]
+#
+# b_vs_a = combined_df.copy()
+# b_vs_a["team_A"] = b_vs_a["awayteamname"]
+# b_vs_a["team_B"] = b_vs_a["hometeamname"]
+# b_vs_a["label"] = 1 - b_vs_a["winner_binary"]
+# b_vs_a[[c for c in a_vs_b.columns if c.startswith("diff_")]]=b_vs_a[[c for c in a_vs_b.columns if c.startswith("diff_")]].apply(lambda x: -x)
+#
+# a_vs_b = a_vs_b[["team_A", "team_B", "label"] + [c for c in a_vs_b.columns if c.startswith("diff_")]]
+# b_vs_a = b_vs_a[["team_A", "team_B", "label"] + [c for c in b_vs_a.columns if c.startswith("diff_")]]
+#
+# combined = pd.concat([a_vs_b, b_vs_a], ignore_index=True)
+# combined = combined.sample(frac=1, random_state=42).reset_index(drop=True)
 
 #show(combined)
 
-combined = pd.get_dummies(combined, columns=["team_A", "team_B"], drop_first=False)
+# combined = pd.get_dummies(combined, columns=["team_A", "team_B"], drop_first=False)
 
 #show(combined)
 
@@ -147,10 +145,10 @@ combined = pd.get_dummies(combined, columns=["team_A", "team_B"], drop_first=Fal
 
 #show(combined_df)
 
-target = combined['label']
-predict = combined.drop('label', axis=1)
-
-x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
+# target = combined['label']
+# predict = combined.drop('label', axis=1)
+#
+# x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
 
 # x_train = combined_df[combined_df['season'] != '2024-2025']
 # x_test = combined_df[combined_df['season'] == '2024-2025']
@@ -164,36 +162,36 @@ x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0
 # y_test = x_test['winner_binary']
 # x_test = x_test.drop('winner_binary', axis=1)
 
-scaler=StandardScaler()
-x_train = scaler.fit_transform(x_train)
-x_test = scaler.fit_transform(x_test)
+# scaler=StandardScaler()
+# x_train = scaler.fit_transform(x_train)
+# x_test = scaler.fit_transform(x_test)
+#
+#
+# tensorboard_callback = tf.keras.callbacks.TensorBoard(
+#     log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
+#     histogram_freq=1,  # How often to log histogram visualizations
+#     embeddings_freq=1,  # How often to log embedding visualizations
+#     update_freq="epoch",
+# )
+#
+# nn_model = tf.keras.Sequential([
+#     tf.keras.layers.Input(shape=(85,)),
+#     tf.keras.layers.Dense(202, activation='relu'),
+#     tf.keras.layers.Dense(54, activation='relu'),
+#     tf.keras.layers.Dense(12, activation='relu'),
+#     tf.keras.layers.Dense(80, activation='relu'),
+#     tf.keras.layers.Dense(1, activation='sigmoid')
+# ])
+#
+#
+#
+# nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
+#
+# history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+#
+# y_pred = (nn_model.predict(x_test)>0.5).astype(int)
 
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(
-    log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
-    histogram_freq=1,  # How often to log histogram visualizations
-    embeddings_freq=1,  # How often to log embedding visualizations
-    update_freq="epoch",
-)
-
-nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(85,)),
-    tf.keras.layers.Dense(202, activation='relu'),
-    tf.keras.layers.Dense(54, activation='relu'),
-    tf.keras.layers.Dense(12, activation='relu'),
-    tf.keras.layers.Dense(80, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-])
-
-
-
-nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
-
-history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
-
-y_pred = (nn_model.predict(x_test)>0.5).astype(int)
-
-
-
-print(classification_report(y_test,y_pred))
-print(y_pred)
+#
+# print(classification_report(y_test,y_pred))
+# print(y_pred)
