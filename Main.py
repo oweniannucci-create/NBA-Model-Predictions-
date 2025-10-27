@@ -1,13 +1,15 @@
-from sklearn.metrics import classification_report
+#from sklearn.metrics import classification_report
 
 import DataFetcher
-from sklearn.model_selection import train_test_split
-import tensorflow as tf
+#from sklearn.model_selection import train_test_split
+#import tensorflow as tf
 from pandasgui import show
+import RestDate
 
 games_df = DataFetcher.get_cleaned_games_with_winner_column()
 stats_df = DataFetcher.get_teamaveragestatistics_from_year()
 draft_df = DataFetcher.get_average_draft_data()
+rest_days_df = RestDate.get_team_rest_days()
 
 print(games_df.info())
 print(stats_df.info())
@@ -71,30 +73,31 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
 
 combined_df = combine_game_team_draft_data(games_df, stats_df, draft_df)
 
-target = combined_df["winner_binary"]
-predict = combined_df.drop("winner_binary",axis=1)
-
-x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
-
-tensorboard_callback = tf.keras.callbacks.TensorBoard(
-    log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
-    histogram_freq=1,  # How often to log histogram visualizations
-    embeddings_freq=1,  # How often to log embedding visualizations
-    update_freq="epoch",
-)
-
-nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(42,)),
-    tf.keras.layers.Dense(84, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-])
-
-
-
-nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
-
-history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
-
-y_pred = (nn_model.predict(x_test)>0.5).astype(int)
-
-print(classification_report(y_test,y_pred))
+#
+# target = combined_df["winner_binary"]
+# predict = combined_df.drop("winner_binary",axis=1)
+#
+# x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
+#
+# tensorboard_callback = tf.keras.callbacks.TensorBoard(
+#     log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
+#     histogram_freq=1,  # How often to log histogram visualizations
+#     embeddings_freq=1,  # How often to log embedding visualizations
+#     update_freq="epoch",
+# )
+#
+# nn_model = tf.keras.Sequential([
+#     tf.keras.layers.Input(shape=(42,)),
+#     tf.keras.layers.Dense(84, activation='relu'),
+#     tf.keras.layers.Dense(1, activation='sigmoid')
+# ])
+#
+#
+#
+# nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
+#
+# history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+#
+# y_pred = (nn_model.predict(x_test)>0.5).astype(int)
+#
+# print(classification_report(y_test,y_pred))
