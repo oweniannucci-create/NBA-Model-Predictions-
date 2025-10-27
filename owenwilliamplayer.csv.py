@@ -2,6 +2,7 @@ import time
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from pandasgui import show
 
 # --------------------------
 # Function: Scrape per-game data
@@ -14,36 +15,25 @@ def get_bbr_per_game_stats(season_year):
     BLK_per_game, STL_per_game, 3P_pct, TOV_per_game, PF_per_game
     """
     url = f"https://www.basketball-reference.com/leagues/NBA_{season_year}_per_game.html"
-    print(f"📡 Fetching season {season_year} from Basketball Reference...")
+    tables = pd.read_html(url)
+    df = tables[0]
+    show(df)
 
-    headers = {"User-Agent": "Mozilla/5.0"}  # helps prevent being blocked
-    resp = requests.get(url, headers=headers)
-    if resp.status_code != 200:
-        raise RuntimeError(f"❌ Failed to fetch {season_year}: HTTP {resp.status_code}")
 
-    soup = BeautifulSoup(resp.text, "html.parser")
 
-    table = soup.find("table", {"id": "per_game_stats"})
-    if table is None:
-        raise RuntimeError(f"❌ Could not find per-game stats table for season {season_year}")
-
-    df_list = pd.read_html(str(table))
-    if not df_list:
-        raise RuntimeError(f"❌ No tables found for season {season_year}")
-    df = df_list[0]
 
     # Remove repeated headers and empty names
     df = df[df["Rk"] != "Rk"].copy()
     df = df.dropna(subset=["Player"])
 
     # Handle traded players (keep "TOT" if it exists)
-    df = df.drop_duplicates(subset=["Player", "Tm"], keep="first")
-    if "Tm" in df.columns:
-        df = df[df["Tm"] != "TOT"].append(df[df["Tm"] == "TOT"], ignore_index=True)
+    df = df.drop_duplicates(subset=["Player", "Team"], keep="first")
+    if "Team" in df.columns:
+        df = df[df["Team"] != "TOT"].append(df[df["Team"] == "TOT"], ignore_index=True)
 
     rename_map = {
         "Player": "Player",
-        "Tm": "Team",
+        "Team": "Team",
         "PTS": "PTS_per_game",
         "AST": "AST_per_game",
         "FG%": "FG_pct",
