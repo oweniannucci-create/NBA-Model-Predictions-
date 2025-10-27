@@ -21,10 +21,10 @@ def get_bbr_winshares(season_end_year=2025):
     df["WS"] = pd.to_numeric(df["WS"], errors="coerce")
 
     # Keep relevant columns
-    df = df[["Player", "Pos", "Age", "Tm", "G", "MP", "PER", "WS"]]
+    #df = df[["Player", "Pos", "Age", "Team", "G", "MP", "PER", "WS"]]
 
     # Rename 'Tm' for clarity
-    df.rename(columns={"Tm": "TEAM_ABBREVIATION"}, inplace=True)
+    df.rename(columns={"Team": "TEAM_ABBREVIATION"}, inplace=True)
 
     # Add season column
     df["Season"] = f"{season_end_year - 1}-{str(season_end_year)[-2:]}"
