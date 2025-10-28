@@ -26,6 +26,8 @@ def get_bbr_winshares(season_end_year=2025):
     # Rename 'Tm' for clarity
     df.rename(columns={"Team": "TEAM_ABBREVIATION"}, inplace=True)
 
+    df["MP_AVG"] = df.apply(lambda x: (x["MP"] / x["GS"]), axis=1)
+
     # Add season column
     df["Season"] = f"{season_end_year - 1}-{str(season_end_year)[-2:]}"
     return df
