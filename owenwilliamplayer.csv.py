@@ -17,7 +17,7 @@ def get_bbr_per_game_stats(season_year):
     url = f"https://www.basketball-reference.com/leagues/NBA_{season_year}_per_game.html"
     tables = pd.read_html(url)
     df = tables[0]
-    show(df)
+    #show(df)
 
 
 
