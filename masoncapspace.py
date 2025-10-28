@@ -1,65 +1,75 @@
+import requests
 import pandas as pd
 
-# List of the (circa 2000) NBA teams and their home cities
 teams = [
-    {"team": "Atlanta Hawks",          "city": "Atlanta, GA"},
-    {"team": "Boston Celtics",         "city": "Boston, MA"},
-    {"team": "Charlotte Hornets",      "city": "Charlotte, NC"},
-    {"team": "Chicago Bulls",          "city": "Chicago, IL"},
-    {"team": "Cleveland Cavaliers",    "city": "Cleveland, OH"},
-    {"team": "Dallas Mavericks",       "city": "Dallas, TX"},
-    {"team": "Denver Nuggets",         "city": "Denver, CO"},
-    {"team": "Detroit Pistons",        "city": "Detroit, MI"},
-    {"team": "Golden State Warriors",  "city": "San Francisco, CA"},
-    {"team": "Houston Rockets",        "city": "Houston, TX"},
-    {"team": "Indiana Pacers",         "city": "Indianapolis, IN"},
-    {"team": "Los Angeles Lakers",     "city": "Los Angeles, CA"},
-    {"team": "Los Angeles Clippers",   "city": "Los Angeles, CA"},
-    {"team": "Memphis Grizzlies",      "city": "Memphis, TN"},
-    {"team": "Miami Heat",             "city": "Miami, FL"},
-    {"team": "Milwaukee Bucks",        "city": "Milwaukee, WI"},
-    {"team": "Minnesota Timberwolves", "city": "Minneapolis, MN"},
-    {"team": "New Jersey Nets",        "city": "Newark, NJ"},
-    {"team": "New York Knicks",        "city": "New York, NY"},
-    {"team": "Orlando Magic",          "city": "Orlando, FL"},
-    {"team": "Philadelphia 76ers",     "city": "Philadelphia, PA"},
-    {"team": "Phoenix Suns",           "city": "Phoenix, AZ"},
-    {"team": "Portland Trail Blazers", "city": "Portland, OR"},
-    {"team": "Sacramento Kings",       "city": "Sacramento, CA"},
-    {"team": "San Antonio Spurs",      "city": "San Antonio, TX"},
-    {"team": "Seattle SuperSonics",    "city": "Seattle, WA"},
-    {"team": "Toronto Raptors",        "city": "Toronto, ON"},  # Note: Canadian city — you may exclude if US only
-    {"team": "Utah Jazz",              "city": "Salt Lake City, UT"},
-    {"team": "Washington Wizards",     "city": "Washington, DC"},
+    {"team": "Atlanta Hawks",        "city": "Atlanta, GA"},
+    {"team": "Boston Celtics",       "city": "Boston, MA"},
+    {"team": "Charlotte Hornets",    "city": "Charlotte, NC"},
+    # ... include all 29 teams ...
 ]
 
 years = [2000, 2010, 2020]
 
-# Placeholder dictionary: city → {year: population, …}
-city_pop = {
-    # Example entries (you must fill out for each city and all years)
-    "New York, NY":      {2000: 8008278, 2010: 8175133, 2020: None},
-    "Los Angeles, CA":   {2000: 3694820, 2010: 3792621, 2020: None},
-    "Chicago, IL":       {2000: 2896016, 2010: 2695598, 2020: None},
-    # … continue for all cities …
+# Define a function to get city population from Census API
+def get_population(city_name, state_code, year):
+    """
+    Fetches the place-population from the Census API for the given city, state and year.
+    You will need to map city_name → place FIPS code (or a lookup) in a real implementation.
+    """
+    if year == 2010:
+        # Example: Summary File 2 for 2010: variable HCT001001 is total population
+        url = f"https://api.census.gov/data/2010/dec/sf2?get=HCT001001,NAME&for=place:*&in=state:{state_code}"
+        resp = requests.get(url)
+        data = resp.json()
+        for row in data[1:]:
+            # row format: [pop, NAME, state, place]
+            if row[1].startswith(city_name):
+                return int(row[0])
+        return None
+
+    elif year == 2020:
+        # Example: Decennial Census 2020 Demographic Profile (DP) dataset
+        # variable P1_001N gives total population (check the exact variable in docs)
+        url = f"https://api.census.gov/data/2020/dec/pl?get=P1_001N,NAME&for=place:*&in=state:{state_code}"
+        resp = requests.get(url)
+        data = resp.json()
+        for row in data[1:]:
+            if row[1].startswith(city_name):
+                return int(row[0])
+        return None
+
+    elif year == 2000:
+        # For 2000 you might use Summary File 1 for year 2000, variable P001001
+        url = f"https://api.census.gov/data/2000/dec/sf1?get=P001001,NAME&for=place:*&in=state:{state_code}"
+        resp = requests.get(url)
+        data = resp.json()
+        for row in data[1:]:
+            if row[1].startswith(city_name):
+                return int(row[0])
+        return None
+
+    else:
+        raise ValueError("Year not supported")
+
+# Example: map each city to its state FIPS code
+state_fips = {
+    "GA": "13", "MA": "25", "NC": "37",
+    # ... all states ...
 }
 
-# Build DataFrame
 rows = []
 for t in teams:
-    city = t["city"]
+    city = t["city"].split(",")[0]
+    state = t["city"].split(",")[1].strip()
     for yr in years:
-        pop = city_pop.get(city, {}).get(yr, None)
-        rows.append({"team": t["team"], "city": city, "year": yr, "population": pop})
+        pop = get_population(city, state_fips[state], yr)
+        rows.append({"team": t["team"], "city": t["city"], "year": yr, "population": pop})
 
 df = pd.DataFrame(rows)
 
-# For each year, rank teams by population descending
 for yr in years:
     print(f"\n--- Census Year {yr} ---")
-    df_year = df[df["year"] == yr].copy()
-    df_year = df_year.dropna(subset=["population"])
-    df_year = df_year.sort_values(by="population", ascending=False)
-    df_year["rank"] = range(1, len(df_year) + 1)
-    print(df_year[["rank", "team", "city", "population"]].to_string(index=False))
+    dfy = df[df["year"] == yr].dropna(subset=["population"]).sort_values(by="population", ascending=False)
+    dfy["rank"] = range(1, len(dfy)+1)
+    print(dfy[["rank","team","city","population"]].to_string(index=False))
 
