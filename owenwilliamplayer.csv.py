@@ -29,7 +29,10 @@ def get_bbr_per_game_stats(season_year):
     # Handle traded players (keep "TOT" if it exists)
     df = df.drop_duplicates(subset=["Player", "Team"], keep="first")
     if "Team" in df.columns:
-        df = df[df["Team"] != "TOT"].append(df[df["Team"] == "TOT"], ignore_index=True)
+        df = pd.concat(
+            [df[df["Team"] != "TOT"], df[df["Team"] == "TOT"]],
+            ignore_index=True
+        )
 
     rename_map = {
         "Player": "Player",
