@@ -42,6 +42,44 @@ stats = [
         "number_of_picks",
         "average_overall_pick"
     ]
+
+
+def get_season_records():
+    team_results = []
+
+    # show(games_df)
+    for _, row in games_df.iterrows():
+        winner = row['winner']
+        home = row['hometeamid']
+        away = row['awayteamid']
+        season = row['season']
+        home_team = row['hometeamname']
+        away_team = row['awayteamname']
+
+        # Home result
+        team_results.append({
+
+            'teamname': home_team,
+            'season': season,
+            'win': 1 if winner == home else 0,
+            'loss': 0 if winner == home else 1
+        })
+
+        # Away result
+        team_results.append({
+            'teamname': away_team,
+            'season': season,
+            'win': 1 if winner == away else 0,
+            'loss': 0 if winner == away else 1
+        })
+
+    record_df = pd.DataFrame(team_results)
+
+    # Aggregate wins/losses
+    record_df = record_df.groupby(['teamname', 'season']).sum().reset_index()
+    record_df['win_pct'] = record_df['win'] / (record_df['win'] + record_df['loss'])
+
+    return record_df
 def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
     # --- 1️⃣ Normalize and prep columns ---
     games_df.columns = games_df.columns.str.lower()
