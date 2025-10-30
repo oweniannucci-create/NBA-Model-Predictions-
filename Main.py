@@ -15,10 +15,18 @@ games_df = DataFetcher.get_cleaned_games_with_winner_column()
 stats_df = DataFetcher.get_teamaveragestatistics_from_year()
 draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()
-player_stats = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
+player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
+city_populations = DataFetcher.get_city_population()
+show(city_populations)
+player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
+
 print(games_df.info())
 print(stats_df.info())
 print(draft_df.info())
+print(player_stats.info())
+print(rest_days.info())
+print(city_populations.info())
+print(player_winshare.info())
 stats = [
         "teamScore",
         "assists",
