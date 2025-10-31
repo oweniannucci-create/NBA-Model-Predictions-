@@ -2,11 +2,13 @@ from sklearn.metrics import classification_report
 
 import DataFetcher
 import travel_distance
-# from sklearn.model_selection import train_test_split
-# from sklearn.preprocessing import StandardScaler
-# import tensorflow as tf
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.linear_model import RidgeClassifier
+import tensorflow as tf
 import pandas as pd
-from pandasgui import show
+import re
 
 
 
@@ -17,7 +19,7 @@ draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()
 player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
 city_populations = DataFetcher.get_city_population()
-show(city_populations)
+
 player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
 
 print(games_df.info())
@@ -27,31 +29,68 @@ print(player_stats.info())
 print(rest_days.info())
 print(city_populations.info())
 print(player_winshare.info())
-stats = [
-        "teamScore",
-        "assists",
-        "reboundsDefensive",
-        "reboundsOffensive",
-        "reboundsTotal",
-        "steals",
-        "blocks",
-        "turnovers",
-        "foulsPersonal",
-        "fieldGoalsMade",
-        "fieldGoalsAttempted",
-        "fieldGoalsPercentage",
-        "threePointersMade",
-        "threePointersAttempted",
-        "threePointersPercentage",
-        "freeThrowsMade",
-        "freeThrowsAttempted",
-        "freeThrowsPercentage",
-        "plusMinusPoints",
-        "number_of_picks",
-        "average_overall_pick"
-    ]
 
 
+nba_team_abbreviations = {
+    "ATL": "Hawks",
+    "BOS": "Celtics",
+    "BKN": "Nets",
+    "BRK": "Nets",
+    "CHH": "Hornets",
+    "CHA": "Hornets",
+    "CHI": "Bulls",
+    "CLE": "Cavaliers",
+    "DAL": "Mavericks",
+    "DEN": "Nuggets",
+    "DET": "Pistons",
+    "GSW": "Warriors",
+    "HOU": "Rockets",
+    "IND": "Pacers",
+    "LAC": "Clippers",
+    "LAL": "Lakers",
+    "MEM": "Grizzlies",
+    "MIA": "Heat",
+    "MIL": "Bucks",
+    "MIN": "Timberwolves",
+    "NOP": "Pelicans",
+    "NOH": "Pelicans",
+    "NYK": "Knicks",
+    "OKC": "Thunder",
+    "ORL": "Magic",
+    "PHI": "76ers",
+    "PHX": "Suns",
+    "PHO": "Suns",
+    "POR": "Trail Blazers",
+    "SAC": "Kings",
+    "SAS": "Spurs",
+    "TOR": "Raptors",
+    "UTA": "Jazz",
+    "WAS": "Wizards",
+    "NJN": "Nets",
+    "SEA": "SuperSonics",
+    "VAN": "Grizzlies"
+}
+
+def drop_columns_from_merged(merged_df):
+    columns_to_drop = ['away_City', 'away_Year', 'home_City', 'home_Year', 'census_year', 'away_teamname', 'home_teamname', 'away_TEAM_ABBREVIATION',
+                       'away_Season_y', 'away_Team_y', 'away_Team_x', 'away_Season_x',
+                       'home_Season_y', 'home_Team_y', 'home_Team_x', 'home_Season_x', 'awayteamname', 'hometeamname', 'awayteamid',
+                       'hometeamid', 'awayscore', 'homescore', 'prev_season', 'season', 'seriesgamenumber', 'gamesublabel', 'gamelabel', 'gametype', 'winner',
+                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid']
+
+    merged_df = merged_df.drop(columns_to_drop, axis=1)
+    for i in range(1, 16):
+        merged_df = merged_df.drop('home_Pos_p' + str(i), axis=1)
+        merged_df = merged_df.drop('home_Player_p' + str(i), axis=1)
+        merged_df = merged_df.drop('away_Pos_p' + str(i), axis=1)
+        merged_df = merged_df.drop('away_Player_p' + str(i), axis=1)
+
+    for side in ["home", "away"]:
+        for i in range(1, 16):
+            col = f"{side}_Awards_p{i}"
+            if col in merged_df.columns:
+                merged_df.drop(columns=[col], inplace=True)
+    return merged_df
 def get_season_records():
     team_results = []
 
@@ -88,19 +127,44 @@ def get_season_records():
     record_df['win_pct'] = record_df['win'] / (record_df['win'] + record_df['loss'])
 
     return record_df
-def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
-    # --- 1️⃣ Normalize and prep columns ---
-    games_df.columns = games_df.columns.str.lower()
-    team_stats_df.columns = team_stats_df.columns.str.lower()
-    draft_df.columns = draft_df.columns.str.lower()
 
-    games_df['season'] = games_df['season'].astype(str)
-    team_stats_df['season'] = team_stats_df['season'].astype(str)
-    draft_df['season'] = draft_df['season'].astype(str)
 
-    draft_df["number_of_picks"] = draft_df["number_of_picks"].fillna(0)
-    draft_df["average_overall_pick"] = draft_df["average_overall_pick"].fillna(-1)
+def parse_awards(award_str):
+    """Convert award string into dict of award -> numeric value"""
+    if not isinstance(award_str, str) or award_str.strip() == "":
+        return {}
 
+    awards = {}
+    for item in award_str.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        # Match patterns like MVP-2, NBA1, AS, DEF2
+        match = re.match(r"([A-Z]+)(?:-?(\d+))?", item)
+        if match:
+            key = match.group(1)
+            val = match.group(2)
+            awards[key] = int(val) if val else 1
+    return awards
+
+
+def expand_player_awards(df, side="home", num_players=15):
+    """
+    Expand award columns for all players for one team side (home/away)
+    df: pandas DataFrame containing award columns
+    side: "home" or "away"
+    num_players: number of player slots
+    """
+    for i in range(1, num_players + 1):
+        col = f"{side}_Awards_p{i}"
+        if col in df.columns:
+            expanded = df[col].apply(parse_awards).apply(pd.Series)
+            expanded = expanded.add_prefix(f"{col}_")
+            df = pd.concat([df, expanded], axis=1)
+    return df
+
+
+def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced, player_stats, city_pop):
     # Define previous season label helper
     def previous_season(season_str):
         try:
@@ -109,110 +173,164 @@ def combine_game_team_draft_data(games_df, team_stats_df, draft_df):
         except:
             return None
 
-    games_df['prev_season'] = games_df['season'].apply(previous_season)
+    # Convert the season start year to integer
+    games['season_start'] = games['season'].str.split('-').str[0].astype(int)
 
-    # --- 2️⃣ Prepare copies of stats and draft data with unique column names ---
-    home_stats = team_stats_df.add_prefix('home_')
-    away_stats = team_stats_df.add_prefix('away_')
+    # Keep only seasons starting in 2000 or later
+    games = games[games['season_start'] >= 2000].copy()
 
-    home_draft = draft_df.add_prefix('home_')
-    away_draft = draft_df.add_prefix('away_')
+    # Optionally, drop the helper column
+    games.drop(columns=['season_start'], inplace=True)
 
-    # Rename join keys in each to match merge fields
-    home_stats = home_stats.rename(columns={'home_season': 'prev_season', 'home_teamname': 'hometeamname'})
-    away_stats = away_stats.rename(columns={'away_season': 'prev_season', 'away_teamname': 'awayteamname'})
+    # standardize column names for joining
+    player_stats = player_stats.rename(columns={'Team': 'TEAM_ABBREVIATION', 'Season': 'Season'})
+    player_advanced = player_advanced.rename(columns={'TEAM_ABBREVIATION': 'TEAM_ABBREVIATION', 'Season': 'Season'})
 
-    home_draft = home_draft.rename(columns={'home_season': 'prev_season', 'home_team_name': 'hometeamname'})
-    away_draft = away_draft.rename(columns={'away_season': 'prev_season', 'away_team_name': 'awayteamname'})
-  
-    # --- 3️⃣ Merge sequentially without suffixes (no collisions possible) ---
-    merged = (
-        games_df
-        .merge(home_stats, on=['prev_season', 'hometeamname'], how='left')
-        .merge(away_stats, on=['prev_season', 'awayteamname'], how='left')
-        .merge(home_draft, on=['prev_season', 'hometeamname'], how='left')
-        .merge(away_draft, on=['prev_season', 'awayteamname'], how='left')
+    # merge both player-level datasets
+    player_full = pd.merge(
+        player_advanced,
+        player_stats,
+        on=['Player', 'TEAM_ABBREVIATION', 'Season'],
+        how='left',
+        suffixes=('_adv', '_stats')
     )
-    merged["travel_distance_km"] = merged.apply(
-        lambda row: travel_distance.get_distance_between_cities(row["hometeamcity"], row["awayteamcity"]),
-        axis=1
+
+
+    games['prev_season'] = games['season'].apply(previous_season)
+
+    # rename to match naming scheme
+    team_stats = team_stats.rename(columns={'teamName': 'Team', 'season': 'Season'})
+    draft_data = draft_data.rename(columns={'TEAM_NAME': 'Team', 'SEASON': 'Season'})
+
+    # # merge home and away versions
+    # games = games.merge(
+    #     team_stats.add_prefix('home_'),
+    #     left_on=['hometeamname', 'prev_season'],
+    #     right_on=['home_Team', 'home_Season'],
+    #     how='left'
+    # ).merge(
+    #     team_stats.add_prefix('away_'),
+    #     left_on=['awayteamname', 'prev_season'],
+    #     right_on=['away_Team', 'away_Season'],
+    #     how='left'
+    # )
+
+    # same idea for draft_data
+    games = games.merge(
+        draft_data.add_prefix('home_'),
+        left_on=['hometeamname', 'prev_season'],
+        right_on=['home_Team', 'home_Season'],
+        how='left'
+    ).merge(
+        draft_data.add_prefix('away_'),
+        left_on=['awayteamname', 'prev_season'],
+        right_on=['away_Team', 'away_Season'],
+        how='left'
     )
-    show(merged)
-    #home_team_dummies = pd.get_dummies(merged['hometeamname'], prefix='home_team')
-    #away_team_dummies = pd.get_dummies(merged['awayteamname'], prefix='away_team')
-    #merged = pd.concat([merged, home_team_dummies, away_team_dummies], axis=1)
 
-    # --- 4️⃣ Cleanup ---
-    merged = merged.drop_duplicates(subset=['gameid']).reset_index(drop=True)
-    merged["season_start"] = merged["season"].str.split("-").str[0].astype(int)
-    merged = merged[merged["season_start"] >= 2000].copy()
-    columns_to_drop = ["gamedate","arenaid", "hometeamcity", "awayteamcity", "seriesgamenumber", "gamelabel", "gamesublabel",
-                       "attendance", "homescore", "awayscore", "gameid", "gametype","winner","hometeamid", "awayteamid", "prev_season", 'season_start']
+    #Merge rest days
+    rest_days['gameDate'] = pd.to_datetime(rest_days['gameDate'])
+    games['gamedate'] = pd.to_datetime(games['gamedate'])
 
-    merged = merged.drop(columns=columns_to_drop, errors="ignore", axis=1)
-    print(merged.info())
-    merged.to_csv("combined_games_team_draft.csv", index=False)
-    print("✅ Combined dataset created successfully: combined_games_team_draft.csv")
-    print(f"Shape: {merged.shape}")
+    games = games.merge(
+        rest_days.add_prefix('home_'),
+        left_on=['hometeamname', 'gamedate'],
+        right_on=['home_Team', 'home_gameDate'],
+        how='left'
+    ).merge(
+        rest_days.add_prefix('away_'),
+        left_on=['awayteamname', 'gamedate'],
+        right_on=['away_Team', 'away_gameDate'],
+        how='left'
+    )
 
-    return merged
+    #Top 15 players
+    top_players = (
+        player_full
+        .sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, False])
+        .groupby(['Season', 'TEAM_ABBREVIATION'])
+        .head(15)
+        .copy()
+    )
 
-combined_df = combine_game_team_draft_data(games_df, stats_df, draft_df)
+    # rank players 1–15 by minutes
+    top_players['player_rank'] = top_players.groupby(['Season', 'TEAM_ABBREVIATION']).cumcount() + 1
 
-#show(combined_df)
-# for col in [s.lower() for s in stats]:
-#     combined_df[f'diff_{col}'] = combined_df[f'home_{col}'] - combined_df[f'away_{col}']
-#
-# a_vs_b = combined_df.copy()
-# a_vs_b["team_A"] = a_vs_b["hometeamname"]
-# a_vs_b["team_B"] = a_vs_b["awayteamname"]
-# a_vs_b["label"] = a_vs_b["winner_binary"]
-#
-# b_vs_a = combined_df.copy()
-# b_vs_a["team_A"] = b_vs_a["awayteamname"]
-# b_vs_a["team_B"] = b_vs_a["hometeamname"]
-# b_vs_a["label"] = 1 - b_vs_a["winner_binary"]
-# b_vs_a[[c for c in a_vs_b.columns if c.startswith("diff_")]]=b_vs_a[[c for c in a_vs_b.columns if c.startswith("diff_")]].apply(lambda x: -x)
-#
-# a_vs_b = a_vs_b[["team_A", "team_B", "label"] + [c for c in a_vs_b.columns if c.startswith("diff_")]]
-# b_vs_a = b_vs_a[["team_A", "team_B", "label"] + [c for c in b_vs_a.columns if c.startswith("diff_")]]
-#
-# combined = pd.concat([a_vs_b, b_vs_a], ignore_index=True)
-# combined = combined.sample(frac=1, random_state=42).reset_index(drop=True)
+    wide_players = top_players.pivot(
+        index=['Season', 'TEAM_ABBREVIATION'],
+        columns='player_rank'
+    )
 
-#show(combined)
+    # flatten MultiIndex columns
+    wide_players.columns = [f"{stat}_p{rank}" for stat, rank in wide_players.columns]
+    wide_players = wide_players.reset_index()
+    wide_players['teamname'] = wide_players['TEAM_ABBREVIATION'].map(nba_team_abbreviations)
+    wide_players['Season'] = wide_players['Season'].apply(lambda x: x.split('-')[0]+'-'+'20'+x.split('-')[1])
+    #show(wide_players)
 
-# combined = pd.get_dummies(combined, columns=["team_A", "team_B"], drop_first=False)
+    games = games.merge(
+        wide_players.add_prefix('home_'),
+        left_on=['hometeamname', 'prev_season'],
+        right_on=['home_teamname', 'home_Season'],
+        how='left'
+    ).merge(
+        wide_players.add_prefix('away_'),
+        left_on=['awayteamname', 'prev_season'],
+        right_on=['away_teamname', 'away_Season'],
+        how='left'
+    )
+    # Melt population df: index=year, columns=cities
+    pop_long = city_pop.reset_index().melt(id_vars='index', var_name='City', value_name='Population')
+    pop_long = pop_long.rename(columns={'index': 'Year'})
 
-#show(combined)
+    # Map each season to census year
+    def season_to_census(season):
+        start = int(season.split('-')[0])
+        if start < 2010:
+            return 2000
+        elif start < 2020:
+            return 2010
+        else:
+            return 2020
 
-#combined_df = combined_df.drop(columns=['home_'+s.lower() for s in stats], errors="ignore", axis=1)
-#combined_df = combined_df.drop(columns=['away_'+s.lower() for s in stats], errors="ignore", axis=1)
+    games['census_year'] = games['season'].apply(season_to_census)
 
-#show(combined_df)
+    # Merge population data
+    games = games.merge(
+        pop_long.add_prefix('home_'),
+        left_on=['hometeamcity', 'census_year'],
+        right_on=['home_City', 'home_Year'],
+        how='left'
+    ).merge(
+        pop_long.add_prefix('away_'),
+        left_on=['awayteamcity', 'census_year'],
+        right_on=['away_City', 'away_Year'],
+        how='left'
+    )
 
-# target = combined['label']
-# predict = combined.drop('label', axis=1)
-#
-# x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
+    games = expand_player_awards(games, side="home", num_players=15)
+    games = expand_player_awards(games, side="away", num_players=15)
 
-# x_train = combined_df[combined_df['season'] != '2024-2025']
-# x_test = combined_df[combined_df['season'] == '2024-2025']
-#
-# x_train = x_train.drop('season', axis=1)
-# x_test = x_test.drop('season', axis=1)
-#
-# y_train = x_train["winner_binary"]
-# x_train = x_train.drop("winner_binary",axis=1)
-#
-# y_test = x_test['winner_binary']
-# x_test = x_test.drop('winner_binary', axis=1)
+    return games
 
-# scaler=StandardScaler()
-# x_train = scaler.fit_transform(x_train)
-# x_test = scaler.fit_transform(x_test)
-#
-#
+merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winshare, player_stats, city_populations)
+merged = drop_columns_from_merged(merged)
+merged = merged.fillna(0)
+
+
+target = merged['winner_binary']
+predict = merged.drop('winner_binary', axis=1)
+
+x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
+
+
+scaler=StandardScaler()
+x_train = scaler.fit_transform(x_train)
+x_test = scaler.fit_transform(x_test)
+
+
+rr = RidgeClassifier(alpha=1)
+
 # tensorboard_callback = tf.keras.callbacks.TensorBoard(
 #     log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
 #     histogram_freq=1,  # How often to log histogram visualizations
@@ -221,23 +339,25 @@ combined_df = combine_game_team_draft_data(games_df, stats_df, draft_df)
 # )
 #
 # nn_model = tf.keras.Sequential([
-#     tf.keras.layers.Input(shape=(85,)),
-#     tf.keras.layers.Dense(202, activation='relu'),
-#     tf.keras.layers.Dense(54, activation='relu'),
-#     tf.keras.layers.Dense(12, activation='relu'),
-#     tf.keras.layers.Dense(80, activation='relu'),
+#     tf.keras.layers.Input(shape=(1156,)),
+#     tf.keras.layers.Dense(2312, activation='relu'),
 #     tf.keras.layers.Dense(1, activation='sigmoid')
 # ])
-#
-#
-#
+
+sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=5, shuffle=True, random_state=42), scoring='accuracy')
+sfs.fit(x_train, y_train)
+predictors = list(x_train[sfs.get_support()])
+print(predictors)
+
+rr.fit(x_train[predictors], y_train)
+
 # nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
 #
 # history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
-#
-# y_pred = (nn_model.predict(x_test)>0.5).astype(int)
+
+y_pred = (rr.predict(x_test))
 
 
-#
-# print(classification_report(y_test,y_pred))
-# print(y_pred)
+
+print(classification_report(y_test,y_pred))
+print(y_pred)
