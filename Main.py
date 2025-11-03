@@ -6,9 +6,11 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import RidgeClassifier
-import tensorflow as tf
 import pandas as pd
 import re
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 
 
 
@@ -329,35 +331,24 @@ x_train = scaler.fit_transform(x_train)
 x_test = scaler.fit_transform(x_test)
 
 
-rr = RidgeClassifier(alpha=1)
+for side in ["home", "away"]:
+    for i in range(1, 16):
+        col = f"{side}_Awards_p{i}"
+        if col in merged.columns:
+            merged.drop(columns=[col], inplace=True)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(
-    log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
-    histogram_freq=1,  # How often to log histogram visualizations
-    embeddings_freq=1,  # How often to log embedding visualizations
-    update_freq="epoch",
-)
+model = RandomForestClassifier(n_estimators=200, random_state=42)
+model.fit(x_train, y_train)
 
-nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1156,)),
-    tf.keras.layers.Dense(2312, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-])
+#Accuracy
+y_pred = model.predict(x_test)
+print("Accuracy：", accuracy_score(y_test, y_pred))
+model.fit(x_train, y_train)
+#Features searching
+importances = pd.Series(model.feature_importances_, index=predict.columns)
 
-sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=5, shuffle=True, random_state=42), scoring='accuracy')
-sfs.fit(x_train, y_train)
-predictors = list(x_train[sfs.get_support()])
-print(predictors)
+#50 top feature
+top_features = importances.sort_values(ascending=False).head(50)
 
-rr.fit(x_train[predictors], y_train)
-
-nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
-
-history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
-
-y_pred = (rr.predict(x_test))
-
-
-
-print(classification_report(y_test,y_pred))
-print(y_pred)
+print("Most important features:")
+print(top_features)
