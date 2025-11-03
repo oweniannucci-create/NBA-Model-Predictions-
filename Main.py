@@ -397,10 +397,10 @@ x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0
 
 scaler=StandardScaler()
 x_train = scaler.fit_transform(x_train)
-x_test = scaler.fit_transform(x_test)
+x_test = scaler.transform(x_test)
 
 
-rr = RidgeClassifier(alpha=1)
+#rr = RidgeClassifier(alpha=1)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(
     log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
@@ -415,19 +415,23 @@ nn_model = tf.keras.Sequential([
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
-sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=3, shuffle=True, random_state=42), scoring='accuracy', n_jobs=-1)
-sfs.fit(x_train, y_train)
-predictors = sfs.transform(x_train)
-print(predictors.info())
-print(predictors)
-
-rr.fit(x_train[predictors], y_train)
+# sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=3, shuffle=True, random_state=42), scoring='accuracy', n_jobs=-1)
+# sfs.fit(x_train, y_train)
+# predictors = sfs.transform(x_train)
+# print(predictors.info())
+# print(predictors)
+#
+# rr.fit(x_train[predictors], y_train)
 
 nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
 
-history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+history = nn_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
 
-y_pred = (rr.predict(x_test))
+y_prob = nn_model.predict(x_test)
+
+# Convert to 0s and 1s
+y_pred = (y_prob > 0.5).astype(int)
+
 
 
 
