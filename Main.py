@@ -344,9 +344,10 @@ nn_model = tf.keras.Sequential([
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
-sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=5, shuffle=True, random_state=42), scoring='accuracy')
+sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=3, shuffle=True, random_state=42), scoring='accuracy', n_jobs=-1)
 sfs.fit(x_train, y_train)
-predictors = list(x_train[sfs.get_support()])
+predictors = sfs.transform(x_train)
+print(predictors.info())
 print(predictors)
 
 rr.fit(x_train[predictors], y_train)
