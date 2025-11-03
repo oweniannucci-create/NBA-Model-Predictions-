@@ -31,6 +31,77 @@ print(city_populations.info())
 print(player_winshare.info())
 
 
+# -----------------------------
+# Map abbreviations to full team names (with city) to match trade CSV
+# -----------------------------
+nba_team_abbreviations_full = {
+    "ATL": "Atlanta Hawks",
+    "BOS": "Boston Celtics",
+    "BKN": "Brooklyn Nets",
+    "BRK": "Brooklyn Nets",
+    "CHH": "Charlotte Hornets",
+    "CHA": "Charlotte Hornets",
+    "CHI": "Chicago Bulls",
+    "CLE": "Cleveland Cavaliers",
+    "DAL": "Dallas Mavericks",
+    "DEN": "Denver Nuggets",
+    "DET": "Detroit Pistons",
+    "GSW": "Golden State Warriors",
+    "HOU": "Houston Rockets",
+    "IND": "Indiana Pacers",
+    "LAC": "LA Clippers",
+    "LAL": "LA Lakers",
+    "MEM": "Memphis Grizzlies",
+    "MIA": "Miami Heat",
+    "MIL": "Milwaukee Bucks",
+    "MIN": "Minnesota Timberwolves",
+    "NOP": "New Orleans Pelicans",
+    "NOH": "New Orleans Pelicans",
+    "NYK": "New York Knicks",
+    "OKC": "Oklahoma City Thunder",
+    "ORL": "Orlando Magic",
+    "PHI": "Philadelphia 76ers",
+    "PHX": "Phoenix Suns",
+    "PHO": "Phoenix Suns",
+    "POR": "Portland Trail Blazers",
+    "SAC": "Sacramento Kings",
+    "SAS": "San Antonio Spurs",
+    "TOR": "Toronto Raptors",
+    "UTA": "Utah Jazz",
+    "WAS": "Washington Wizards",
+    "NJN": "Brooklyn Nets",
+    "SEA": "Seattle SuperSonics",
+    "VAN": "Memphis Grizzlies"
+}
+
+# Add full team name column to player_stats
+player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
+
+
+# -----------------------------
+# Load trade data and adjust stats for traded players
+# -----------------------------
+trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+
+def update_player_stats_for_trades(player_stats, trades):
+    """
+    Reassign all stats in seasons where a player was traded to the new team (full team name).
+    """
+    def assign_team_by_trade(row):
+        player = row['Player']
+        season = row['Season']
+        trade_info = trades[(trades['Player'] == player) & (trades['Year'] == season)]
+        if not trade_info.empty:
+            return trade_info.iloc[0]['To_Team']  # Full team name from trades CSV
+        return row['TEAM_FULL_NAME']  # Original mapped full name
+
+    player_stats['TEAM_FULL_NAME'] = player_stats.apply(assign_team_by_trade, axis=1)
+    return player_stats
+
+# Apply trade adjustment
+player_stats = update_player_stats_for_trades(player_stats, trades)
+
+
 nba_team_abbreviations = {
     "ATL": "Hawks",
     "BOS": "Celtics",
