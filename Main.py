@@ -352,3 +352,7 @@ top_features = importances.sort_values(ascending=False)
 
 print("Most important features:")
 print(top_features)
+
+top_features_df = top_features.reset_index()
+top_features_df.columns = ["Feature", "Importance"]
+top_features_df.to_csv("feature_importance.csv", index=False)
