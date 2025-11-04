@@ -75,13 +75,13 @@ nba_team_abbreviations_full = {
 }
 
 # Add full team name column to player_stats
-player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
+#player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
 
 
 # -----------------------------
 # Load trade data and adjust stats for traded players
 # -----------------------------
-trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+#trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
 
 def update_player_stats_for_trades(player_stats, trades):
     """
@@ -99,7 +99,7 @@ def update_player_stats_for_trades(player_stats, trades):
     return player_stats
 
 # Apply trade adjustment
-player_stats = update_player_stats_for_trades(player_stats, trades)
+#player_stats = update_player_stats_for_trades(player_stats, trades)
 
 
 nba_team_abbreviations = {
@@ -388,8 +388,8 @@ merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winsh
 #merged = drop_columns_from_merged(merged)
 merged = merged.fillna(0)
 
-train = merged(merged["Season"] < 2023)
-test = merged(merged["Season"] > 2023)
+train = int(merged(merged["season"].split("-")[1]) < 2023)
+test = int(merged(merged["season"].split("-")[1]) < 2023)
 
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
