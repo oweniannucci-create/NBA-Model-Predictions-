@@ -331,12 +331,6 @@ x_train = scaler.fit_transform(x_train)
 x_test = scaler.fit_transform(x_test)
 
 
-for side in ["home", "away"]:
-    for i in range(1, 16):
-        col = f"{side}_Awards_p{i}"
-        if col in merged.columns:
-            merged.drop(columns=[col], inplace=True)
-
 model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(x_train, y_train)
 
