@@ -1,11 +1,8 @@
 from sklearn.metrics import classification_report
 
 import DataFetcher
-import travel_distance
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SequentialFeatureSelector
-from sklearn.linear_model import RidgeClassifier
 import tensorflow as tf
 import pandas as pd
 import re
@@ -83,6 +80,21 @@ player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_
 # -----------------------------
 trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
 
+
+# Map abbreviations in trade data to full team names (using existing mapping)
+if 'From' in trades.columns and 'To' in trades.columns:
+    trades['From'] = trades['From'].map(nba_team_abbreviations_full).fillna(trades['From'])
+    trades['To'] = trades['To'].map(nba_team_abbreviations_full).fillna(trades['To'])
+
+# Create a season mapping dictionary for all years 2003–2026
+season_mapping = {year: f"{year-1}-{str(year)[-2:]}" for year in range(2003, 2026)}
+
+# Apply this mapping to your trade data
+if 'Season' in trades.columns:
+    trades['Season'] = trades['Season'].map(season_mapping)
+
+
+
 def update_player_stats_for_trades(player_stats, trades):
     """
     Reassign all stats in seasons where a player was traded to the new team (full team name).
@@ -90,9 +102,9 @@ def update_player_stats_for_trades(player_stats, trades):
     def assign_team_by_trade(row):
         player = row['Player']
         season = row['Season']
-        trade_info = trades[(trades['Player'] == player) & (trades['Year'] == season)]
+        trade_info = trades[(trades['Player'] == player) & (trades['Season'] == season)]
         if not trade_info.empty:
-            return trade_info.iloc[0]['To_Team']  # Full team name from trades CSV
+            return trade_info.iloc[0]['To']  # Full team name from trades CSV
         return row['TEAM_FULL_NAME']  # Original mapped full name
 
     player_stats['TEAM_FULL_NAME'] = player_stats.apply(assign_team_by_trade, axis=1)
