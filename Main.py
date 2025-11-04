@@ -348,7 +348,7 @@ model.fit(x_train, y_train)
 importances = pd.Series(model.feature_importances_, index=predict.columns)
 
 #50 top feature
-top_features = importances.sort_values(ascending=False).head(50)
+top_features = importances.sort_values(ascending=False)
 
 print("Most important features:")
 print(top_features)
