@@ -385,11 +385,11 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
     return games
 
 merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winshare, player_stats, city_populations)
-merged = drop_columns_from_merged(merged)
+#merged = drop_columns_from_merged(merged)
 merged = merged.fillna(0)
 
-train = merged(merged["Season"] < "2023")
-test = merged(merged["Season"] > "2023")
+train = merged(merged["Season"] < 2023)
+test = merged(merged["Season"] > 2023)
 
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
@@ -400,11 +400,10 @@ x_train = train.drop(columns=["winner_binary"], axis=1)
 y_test = test["winner_binary"]
 x_test = test.drop(columns=["winner_binary"], axis=1)
 
-target = merged['winner_binary']
-predict = merged.drop('winner_binary', axis=1)
+#target = merged['winner_binary']
+#predict = merged.drop('winner_binary', axis=1)
 
-x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
-
+#x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
 
 scaler=StandardScaler()
 x_train = scaler.fit_transform(x_train)
