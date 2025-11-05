@@ -19,7 +19,6 @@ draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()
 player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
 city_populations = DataFetcher.get_city_population()
-
 player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
 
 print(games_df.info())
@@ -75,13 +74,13 @@ nba_team_abbreviations_full = {
 }
 
 # Add full team name column to player_stats
-player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
+#player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
 
 
 # -----------------------------
 # Load trade data and adjust stats for traded players
 # -----------------------------
-trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+#trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
 
 def update_player_stats_for_trades(player_stats, trades):
     """
@@ -99,7 +98,7 @@ def update_player_stats_for_trades(player_stats, trades):
     return player_stats
 
 # Apply trade adjustment
-player_stats = update_player_stats_for_trades(player_stats, trades)
+#player_stats = update_player_stats_for_trades(player_stats, trades)
 
 
 nba_team_abbreviations = {
@@ -385,6 +384,7 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
     return games
 
 merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winshare, player_stats, city_populations)
+merged['away_travel_distance'] = merged.apply(lambda x: travel_distance.get_distance_between_cities(x['awayteamcity'], x['hometeamcity']), axis=1)
 merged = drop_columns_from_merged(merged)
 merged = merged.fillna(0)
 
@@ -410,7 +410,7 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 )
 
 nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1156,)),
+    tf.keras.layers.Input(shape=(1157,)),
     tf.keras.layers.Dense(2312, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
@@ -425,7 +425,7 @@ nn_model = tf.keras.Sequential([
 
 nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
 
-history = nn_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
 
 y_prob = nn_model.predict(x_test)
 
