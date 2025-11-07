@@ -9,6 +9,7 @@ from sklearn.linear_model import RidgeClassifier
 import tensorflow as tf
 import pandas as pd
 import re
+from pandasgui import show
 
 
 
@@ -147,7 +148,7 @@ def drop_columns_from_merged(merged_df):
                        'away_Season_y', 'away_Team_y', 'away_Team_x', 'away_Season_x',
                        'home_Season_y', 'home_Team_y', 'home_Team_x', 'home_Season_x', 'awayteamname', 'hometeamname', 'awayteamid',
                        'hometeamid', 'awayscore', 'homescore', 'prev_season', 'season', 'seriesgamenumber', 'gamesublabel', 'gamelabel', 'gametype', 'winner',
-                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid']
+                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid', 'season_end']
 
     merged_df = merged_df.drop(columns_to_drop, axis=1)
     for i in range(1, 16):
@@ -388,8 +389,12 @@ merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winsh
 #merged = drop_columns_from_merged(merged)
 merged = merged.fillna(0)
 
-train = int(merged(merged["season"].split("-")[1]) < 2023)
-test = int(merged(merged["season"].split("-")[1]) > 2023)
+
+merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
+
+train = merged[merged['season_end'] < 2024]
+test = merged[merged['season_end'] > 2024]
+show(test)
 
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
