@@ -389,7 +389,7 @@ merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winsh
 merged = merged.fillna(0)
 
 train = int(merged(merged["season"].split("-")[1]) < 2023)
-test = int(merged(merged["season"].split("-")[1]) < 2023)
+test = int(merged(merged["season"].split("-")[1]) > 2023)
 
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
