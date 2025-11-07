@@ -8,12 +8,13 @@ from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import RidgeClassifier
 import tensorflow as tf
 import pandas as pd
-import re
 
 
 
 
+current_games = pd.read_csv("nba_schedule_2025_26.csv")
 games_df = DataFetcher.get_cleaned_games_with_winner_column()
+all_games = pd.concat([games_df, current_games], ignore_index=True)
 stats_df = DataFetcher.get_teamaveragestatistics_from_year()
 draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()

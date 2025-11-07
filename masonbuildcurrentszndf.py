@@ -19,18 +19,17 @@ def get_full_schedule(season="2025-26"):
     # Debug info – helpful if NBA API schema changes again
     print("Columns returned by NBA API:", list(games.columns))
 
-    # The correct date column is now 'gameDate'
+    # The correct date column is 'gameDate'
     date_col = "gameDate"
 
-    # Rename relevant columns (city and mascot separated)
     rename_map = {
         date_col: "game_date",
         "gameId": "game_id",
         "gameStatusText": "status_text",
-        "homeTeam_teamCity": "home_city",
-        "homeTeam_teamName": "home_mascot",
-        "awayTeam_teamCity": "away_city",
-        "awayTeam_teamName": "away_mascot",
+        "homeTeam_teamCity": "hometeamcity",
+        "homeTeam_teamName": "hometeamname",
+        "awayTeam_teamCity": "awayteamcity",
+        "awayTeam_teamName": "awayteamname",
     }
 
     df = games.rename(columns=rename_map)
@@ -43,16 +42,23 @@ def get_full_schedule(season="2025-26"):
     # Add a played flag
     df["played"] = df["status_text"].str.lower().isin(["final", "completed", "ended"])
 
-    # Add the season info column
+    # Add season info
     df["season"] = season
 
-    # Select clean, readable columns
+    # ✅ Corrected columns to keep
     keep_cols = [
-        "season", "game_id", "game_date",
-        "home_city", "home_mascot",
-        "away_city", "away_mascot",
-        "status_text", "played"
+        "season",
+        "game_id",
+        "game_date",
+        "hometeamcity",
+        "hometeamname",
+        "awayteamcity",
+        "awayteamname",
+        "status_text",
+        "played"
     ]
+
+    # Only keep those that exist
     df = df[[c for c in keep_cols if c in df.columns]]
 
     return df

@@ -1,4 +1,4 @@
-season,game_id,game_date,home_city,home_mascot,away_city,away_mascot,status_text,played
+season,game_id,game_date,hometeamcity,hometeamname,awayteamcity,awayteamname,status_text,played
 2025-26,0012500008,2025-10-02,New York,Knicks,Philadelphia,76ers,Final,True
 2025-26,0012500001,2025-10-03,Los Angeles,Lakers,Phoenix,Suns,Final,True
 2025-26,0012500009,2025-10-03,New Orleans,Pelicans,Melbourne,United,Final               ,False
@@ -173,24 +173,24 @@ season,game_id,game_date,home_city,home_mascot,away_city,away_mascot,status_text
 2025-26,0022500162,2025-11-03,Denver,Nuggets,Sacramento,Kings,Final,True
 2025-26,0022500163,2025-11-03,Portland,Trail Blazers,Los Angeles,Lakers,Final,True
 2025-26,0022500164,2025-11-03,LA,Clippers,Miami,Heat,Final,True
-2025-26,0022500170,2025-11-04,LA,Clippers,Oklahoma City,Thunder,11:00 pm ET,False
-2025-26,0022500168,2025-11-04,New Orleans,Pelicans,Charlotte,Hornets,8:00 pm ET,False
-2025-26,0022500169,2025-11-04,Golden State,Warriors,Phoenix,Suns,10:00 pm ET,False
-2025-26,0022500166,2025-11-04,Atlanta,Hawks,Orlando,Magic,8:00 pm ET,False
-2025-26,0022500165,2025-11-04,Toronto,Raptors,Milwaukee,Bucks,7:30 pm ET,False
-2025-26,0022500167,2025-11-04,Chicago,Bulls,Philadelphia,76ers,8:00 pm ET,False
-2025-26,0022500172,2025-11-05,Detroit,Pistons,Utah,Jazz,7:00 pm ET,False
-2025-26,0022500173,2025-11-05,Indiana,Pacers,Brooklyn,Nets,7:00 pm ET,False
-2025-26,0022500174,2025-11-05,Boston,Celtics,Washington,Wizards,7:30 pm ET,False
-2025-26,0022500175,2025-11-05,New York,Knicks,Minnesota,Timberwolves,7:30 pm ET,False
-2025-26,0022500176,2025-11-05,Memphis,Grizzlies,Houston,Rockets,8:00 pm ET,False
-2025-26,0022500177,2025-11-05,Dallas,Mavericks,New Orleans,Pelicans,8:30 pm ET,False
-2025-26,0022500178,2025-11-05,Denver,Nuggets,Miami,Heat,9:00 pm ET,False
-2025-26,0022500179,2025-11-05,Los Angeles,Lakers,San Antonio,Spurs,10:00 pm ET,False
-2025-26,0022500180,2025-11-05,Portland,Trail Blazers,Oklahoma City,Thunder,10:00 pm ET,False
-2025-26,0022500181,2025-11-05,Sacramento,Kings,Golden State,Warriors,10:00 pm ET,False
-2025-26,0022500171,2025-11-05,Cleveland,Cavaliers,Philadelphia,76ers,7:00 pm ET,False
-2025-26,0022500182,2025-11-06,Phoenix,Suns,LA,Clippers,9:00 pm ET,False
+2025-26,0022500170,2025-11-04,LA,Clippers,Oklahoma City,Thunder,Final,True
+2025-26,0022500168,2025-11-04,New Orleans,Pelicans,Charlotte,Hornets,Final,True
+2025-26,0022500169,2025-11-04,Golden State,Warriors,Phoenix,Suns,Final,True
+2025-26,0022500166,2025-11-04,Atlanta,Hawks,Orlando,Magic,Final,True
+2025-26,0022500165,2025-11-04,Toronto,Raptors,Milwaukee,Bucks,Final,True
+2025-26,0022500167,2025-11-04,Chicago,Bulls,Philadelphia,76ers,Final,True
+2025-26,0022500172,2025-11-05,Detroit,Pistons,Utah,Jazz,Final,True
+2025-26,0022500173,2025-11-05,Indiana,Pacers,Brooklyn,Nets,Final,True
+2025-26,0022500174,2025-11-05,Boston,Celtics,Washington,Wizards,Final,True
+2025-26,0022500175,2025-11-05,New York,Knicks,Minnesota,Timberwolves,Final,True
+2025-26,0022500176,2025-11-05,Memphis,Grizzlies,Houston,Rockets,Final,True
+2025-26,0022500177,2025-11-05,Dallas,Mavericks,New Orleans,Pelicans,Final,True
+2025-26,0022500178,2025-11-05,Denver,Nuggets,Miami,Heat,Final,True
+2025-26,0022500179,2025-11-05,Los Angeles,Lakers,San Antonio,Spurs,Final,True
+2025-26,0022500180,2025-11-05,Portland,Trail Blazers,Oklahoma City,Thunder,Final,True
+2025-26,0022500181,2025-11-05,Sacramento,Kings,Golden State,Warriors,Final,True
+2025-26,0022500171,2025-11-05,Cleveland,Cavaliers,Philadelphia,76ers,Final,True
+2025-26,0022500182,2025-11-06,Phoenix,Suns,LA,Clippers,Final,True
 2025-26,0022500035,2025-11-07,Milwaukee,Bucks,Chicago,Bulls,8:00 pm ET,False
 2025-26,0022500037,2025-11-07,Denver,Nuggets,Golden State,Warriors,10:00 pm ET,False
 2025-26,0022500034,2025-11-07,Memphis,Grizzlies,Dallas,Mavericks,8:00 pm ET,False
@@ -279,7 +279,7 @@ season,game_id,game_date,home_city,home_mascot,away_city,away_mascot,status_text
 2025-26,0022500242,2025-11-17,Detroit,Pistons,Indiana,Pacers,7:00 pm ET,False
 2025-26,0022500249,2025-11-18,Orlando,Magic,Golden State,Warriors,7:00 pm ET,False
 2025-26,0022500250,2025-11-18,Brooklyn,Nets,Boston,Celtics,7:30 pm ET,False
-2025-26,0022500251,2025-11-18,Atlanta,Hawks,Detroit,Pistons,8:00 pm ET,False
+2025-26,0022500251,2025-11-18,Atlanta,Hawks,Detroit,Pistons,7:30 pm ET,False
 2025-26,0022500252,2025-11-18,San Antonio,Spurs,Memphis,Grizzlies,8:00 pm ET,False
 2025-26,0022500253,2025-11-18,Los Angeles,Lakers,Utah,Jazz,10:30 pm ET,False
 2025-26,0022500254,2025-11-18,Portland,Trail Blazers,Phoenix,Suns,11:00 pm ET,False
