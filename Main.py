@@ -1,9 +1,9 @@
-from sklearn.metrics import classification_report
+# from sklearn.metrics import classification_report
 
 import DataFetcher
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-import tensorflow as tf
+# import tensorflow as tf
 import pandas as pd
 import re
 
@@ -15,6 +15,8 @@ stats_df = DataFetcher.get_teamaveragestatistics_from_year()
 draft_df = DataFetcher.get_average_draft_data()
 rest_days = DataFetcher.get_rest_days()
 player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
+print(player_stats.columns)
+
 city_populations = DataFetcher.get_city_population()
 
 player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
@@ -72,13 +74,22 @@ nba_team_abbreviations_full = {
 }
 
 # Add full team name column to player_stats
-player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
+player_stats['TEAM_FULL_NAME'] = player_stats['Team'].map(nba_team_abbreviations_full)
 
+# --- Check mapping worked ---
+# print(player_stats[['Player', 'Team', 'TEAM_FULL_NAME']].head(10))
 
 # -----------------------------
 # Load trade data and adjust stats for traded players
 # -----------------------------
 trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+
+# # Read the trade CSV into a variable
+# trade_data = pd.read_csv("nba_trades_combined_sorted.csv")
+#
+# # Check a specific player
+# print(trade_data[trade_data['Player'] == 'Kevin Durant'])
+
 
 
 # Map abbreviations in trade data to full team names (using existing mapping)
@@ -406,46 +417,52 @@ predict = merged.drop('winner_binary', axis=1)
 
 x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
 
+# Drop non-numeric columns (like team names or player names)
+x_train = x_train.select_dtypes(include=['number'])
+x_test = x_test.select_dtypes(include=['number'])
+
 
 scaler=StandardScaler()
 x_train = scaler.fit_transform(x_train)
 x_test = scaler.transform(x_test)
 
 
+
 #rr = RidgeClassifier(alpha=1)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(
-    log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
-    histogram_freq=1,  # How often to log histogram visualizations
-    embeddings_freq=1,  # How often to log embedding visualizations
-    update_freq="epoch",
-)
-
-nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1156,)),
-    tf.keras.layers.Dense(2312, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-])
-
-# sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=3, shuffle=True, random_state=42), scoring='accuracy', n_jobs=-1)
-# sfs.fit(x_train, y_train)
-# predictors = sfs.transform(x_train)
-# print(predictors.info())
-# print(predictors)
+# tensorboard_callback = tf.keras.callbacks.TensorBoard(
+#     log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
+#     histogram_freq=1,  # How often to log histogram visualizations
+#     embeddings_freq=1,  # How often to log embedding visualizations
+#     update_freq="epoch",
+# )
 #
-# rr.fit(x_train[predictors], y_train)
+# nn_model = tf.keras.Sequential([
+#     tf.keras.layers.Input(shape=(1156,)),
+#     tf.keras.layers.Dense(2312, activation='relu'),
+#     tf.keras.layers.Dense(1, activation='sigmoid')
+# ])
+#
+# # sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=3, shuffle=True, random_state=42), scoring='accuracy', n_jobs=-1)
+# # sfs.fit(x_train, y_train)
+# # predictors = sfs.transform(x_train)
+# # print(predictors.info())
+# # print(predictors)
+# #
+# # rr.fit(x_train[predictors], y_train)
+#
+# nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
+#
+# history = nn_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+#
+# y_prob = nn_model.predict(x_test)
+#
+# # Convert to 0s and 1s
+# y_pred = (y_prob > 0.5).astype(int)
+#
+#
+#
+#
+# print(classification_report(y_test,y_pred))
+# print(y_pred)
 
-nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
-
-history = nn_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
-
-y_prob = nn_model.predict(x_test)
-
-# Convert to 0s and 1s
-y_pred = (y_prob > 0.5).astype(int)
-
-
-
-
-print(classification_report(y_test,y_pred))
-print(y_pred)
