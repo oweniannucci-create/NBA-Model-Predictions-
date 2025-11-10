@@ -23,8 +23,8 @@ def get_full_schedule(season="2025-26"):
     date_col = "gameDate"
 
     rename_map = {
-        date_col: "game_date",
-        "gameId": "game_id",
+        "game_date": "gamedate",
+        "gameId": "gameid",
         "gameStatusText": "status_text",
         "homeTeam_teamCity": "hometeamcity",
         "homeTeam_teamName": "hometeamname",
@@ -35,9 +35,9 @@ def get_full_schedule(season="2025-26"):
     df = games.rename(columns=rename_map)
 
     # Convert date and sort
-    df["game_date"] = pd.to_datetime(df["game_date"], errors="coerce")
-    df = df.dropna(subset=["game_date"])
-    df = df.sort_values("game_date").reset_index(drop=True)
+    df["gamedate"] = pd.to_datetime(df["gamedate"], errors="coerce")
+    df = df.dropna(subset=["gamedate"])
+    df = df.sort_values("gamedate").reset_index(drop=True)
 
     # Add a played flag
     df["played"] = df["status_text"].str.lower().isin(["final", "completed", "ended"])
@@ -49,7 +49,7 @@ def get_full_schedule(season="2025-26"):
     keep_cols = [
         "season",
         "game_id",
-        "game_date",
+        "gamedate",
         "hometeamcity",
         "hometeamname",
         "awayteamcity",
