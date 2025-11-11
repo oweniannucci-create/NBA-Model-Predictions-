@@ -396,7 +396,7 @@ train = merged[merged['season_end'] < 2024]
 test = merged[merged['season_end'] > 2024]
 #show(test)
 
-games_2024_25 = test[["hometeamname","awayteamname","gamedate""winner_binary"]]
+games_2024_25 = test[["hometeamname","awayteamname","gamedate","winner_binary"]]
 
 
 train = drop_columns_from_merged(train)
