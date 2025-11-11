@@ -19,11 +19,9 @@ def get_full_schedule(season="2025-26"):
     # Debug info – helpful if NBA API schema changes again
     print("Columns returned by NBA API:", list(games.columns))
 
-    # The correct date column is 'gameDate'
-    date_col = "gameDate"
-
+    # ✅ Corrected rename map to match actual API output
     rename_map = {
-        "game_date": "gamedate",
+        "gameDate": "gamedate",
         "gameId": "gameid",
         "gameStatusText": "status_text",
         "homeTeam_teamCity": "hometeamcity",
@@ -32,7 +30,12 @@ def get_full_schedule(season="2025-26"):
         "awayTeam_teamName": "awayteamname",
     }
 
+    # Apply renaming
     df = games.rename(columns=rename_map)
+
+    # ✅ Ensure 'gamedate' exists before using
+    if "gamedate" not in df.columns:
+        raise KeyError("Expected 'gameDate' column not found in NBA API response.")
 
     # Convert date and sort
     df["gamedate"] = pd.to_datetime(df["gamedate"], errors="coerce")
@@ -45,17 +48,17 @@ def get_full_schedule(season="2025-26"):
     # Add season info
     df["season"] = season
 
-    # ✅ Corrected columns to keep
+    # ✅ Corrected column list
     keep_cols = [
         "season",
-        "game_id",
+        "gameid",
         "gamedate",
         "hometeamcity",
         "hometeamname",
         "awayteamcity",
         "awayteamname",
         "status_text",
-        "played"
+        "played",
     ]
 
     # Only keep those that exist
