@@ -394,7 +394,7 @@ merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
 
 train = merged[merged['season_end'] < 2024]
 test = merged[merged['season_end'] > 2024]
-show(test)
+#show(test)
 
 games_2024_25 = test[["hometeamname","awayteamname","gamedate""winner_binary"]]
 
@@ -454,4 +454,5 @@ games_2024_25["pred"] = y_pred
 
 
 print(classification_report(y_test,y_pred))
-print(y_pred)
+#print(y_pred)
+show(games_2024_25)
