@@ -9,6 +9,7 @@ from sklearn.linear_model import RidgeClassifier
 import tensorflow as tf
 import pandas as pd
 import re
+from pandasgui import show
 
 
 
@@ -74,13 +75,38 @@ nba_team_abbreviations_full = {
 }
 
 # Add full team name column to player_stats
-#player_stats['TEAM_FULL_NAME'] = player_stats['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
+player_stats['TEAM_FULL_NAME'] = player_stats['Team'].map(nba_team_abbreviations_full)
+player_winshare['TEAM_FULL_NAME'] = player_winshare['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
 
+# --- Check mapping worked ---
+# print(player_stats[['Player', 'Team', 'TEAM_FULL_NAME']].head(10))
 
 # -----------------------------
 # Load trade data and adjust stats for traded players
 # -----------------------------
-#trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+
+# # Read the trade CSV into a variable
+# trade_data = pd.read_csv("nba_trades_combined_sorted.csv")
+#
+# # Check a specific player
+# print(trade_data[trade_data['Player'] == 'Kevin Durant'])
+
+
+
+# Map abbreviations in trade data to full team names (using existing mapping)
+if 'From' in trades.columns and 'To' in trades.columns:
+    trades['From'] = trades['From'].map(nba_team_abbreviations_full).fillna(trades['From'])
+    trades['To'] = trades['To'].map(nba_team_abbreviations_full).fillna(trades['To'])
+
+# Create a season mapping dictionary for all years 2003–2026
+season_mapping = {year: f"{year-1}-{str(year)[-2:]}" for year in range(2003, 2026)}
+
+# Apply this mapping to your trade data
+if 'Season' in trades.columns:
+    trades['Season'] = trades['Season'].map(season_mapping)
+
+
 
 def update_player_stats_for_trades(player_stats, trades):
     """
@@ -89,16 +115,18 @@ def update_player_stats_for_trades(player_stats, trades):
     def assign_team_by_trade(row):
         player = row['Player']
         season = row['Season']
-        trade_info = trades[(trades['Player'] == player) & (trades['Year'] == season)]
+        trade_info = trades[(trades['Player'] == player) & (trades['Season'] == season)]
         if not trade_info.empty:
-            return trade_info.iloc[0]['To_Team']  # Full team name from trades CSV
+            return trade_info.iloc[0]['To']  # Full team name from trades CSV
         return row['TEAM_FULL_NAME']  # Original mapped full name
 
     player_stats['TEAM_FULL_NAME'] = player_stats.apply(assign_team_by_trade, axis=1)
     return player_stats
 
 # Apply trade adjustment
-#player_stats = update_player_stats_for_trades(player_stats, trades)
+player_stats = update_player_stats_for_trades(player_stats, trades)
+show(player_stats)
+player_winshare = update_player_stats_for_trades(player_winshare, trades)
 
 
 nba_team_abbreviations = {
@@ -146,7 +174,7 @@ def drop_columns_from_merged(merged_df):
                        'away_Season_y', 'away_Team_y', 'away_Team_x', 'away_Season_x',
                        'home_Season_y', 'home_Team_y', 'home_Team_x', 'home_Season_x', 'awayteamname', 'hometeamname', 'awayteamid',
                        'hometeamid', 'awayscore', 'homescore', 'prev_season', 'season', 'seriesgamenumber', 'gamesublabel', 'gamelabel', 'gametype', 'winner',
-                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid']
+                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid','season_end']
 
     merged_df = merged_df.drop(columns_to_drop, axis=1)
     for i in range(1, 16):
@@ -154,6 +182,10 @@ def drop_columns_from_merged(merged_df):
         merged_df = merged_df.drop('home_Player_p' + str(i), axis=1)
         merged_df = merged_df.drop('away_Pos_p' + str(i), axis=1)
         merged_df = merged_df.drop('away_Player_p' + str(i), axis=1)
+        merged_df = merged_df.drop('away_TEAM_FULL_NAME_adv_p' + str(i), axis=1)
+        merged_df = merged_df.drop('home_TEAM_FULL_NAME_adv_p' + str(i), axis=1)
+        merged_df = merged_df.drop('away_TEAM_FULL_NAME_stats_p' + str(i), axis=1)
+        merged_df = merged_df.drop('home_TEAM_FULL_NAME_stats_p' + str(i), axis=1)
 
     for side in ["home", "away"]:
         for i in range(1, 16):
@@ -385,14 +417,32 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
 
 merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winshare, player_stats, city_populations)
 merged['away_travel_distance'] = merged.apply(lambda x: travel_distance.get_distance_between_cities(x['awayteamcity'], x['hometeamcity']), axis=1)
-merged = drop_columns_from_merged(merged)
+#merged = drop_columns_from_merged(merged)
 merged = merged.fillna(0)
+merged.to_csv('total_training_set.csv', index=False)
+show(merged.head())
 
 
-target = merged['winner_binary']
-predict = merged.drop('winner_binary', axis=1)
+merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
 
-x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
+train = merged[merged['season_end'] < 2024]
+test = merged[merged['season_end'] > 2024]
+show(test)
+
+train = drop_columns_from_merged(train)
+test = drop_columns_from_merged(test)
+
+y_train = train["winner_binary"]
+x_train = train.drop(columns=["winner_binary"], axis=1)
+
+y_test = test["winner_binary"]
+x_test = test.drop(columns=["winner_binary"], axis=1)
+
+
+# target = merged['winner_binary']
+# predict = merged.drop('winner_binary', axis=1)
+#
+# x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
 
 
 scaler=StandardScaler()
