@@ -396,6 +396,9 @@ train = merged[merged['season_end'] < 2024]
 test = merged[merged['season_end'] > 2024]
 show(test)
 
+games_2024_25 = test[["hometeamname","awayteamname","gamedate""winner_binary"]]
+
+
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
 
@@ -447,7 +450,7 @@ y_prob = nn_model.predict(x_test)
 # Convert to 0s and 1s
 y_pred = (y_prob > 0.5).astype(int)
 
-
+games_2024_25["pred"] = y_pred
 
 
 print(classification_report(y_test,y_pred))
