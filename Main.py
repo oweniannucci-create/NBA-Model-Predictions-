@@ -130,6 +130,16 @@ player_winshare = update_player_stats_for_trades(player_winshare, trades)
 inv_team_dict = {v: k for k, v in nba_team_abbreviations_full.items()}
 player_stats['Team']=player_stats['TEAM_FULL_NAME'].map(inv_team_dict)
 player_winshare['TEAM_ABBREVIATION']=player_winshare['TEAM_FULL_NAME'].map(inv_team_dict)
+
+# --- Show sample to verify mappings ---
+sample_check = player_stats[['Player', 'Season', 'TEAM_FULL_NAME', 'Team']].head(50)
+show(sample_check)
+
+
+
+
+
+
 #Comment
 
 nba_team_abbreviations = {
