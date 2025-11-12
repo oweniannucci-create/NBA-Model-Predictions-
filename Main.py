@@ -29,7 +29,7 @@ team_mapping = {
     'Lakers': 'LAL', 'Grizzlies': 'MEM', 'Heat': 'MIA', 'Bucks': 'MIL',
     'Timberwolves': 'MIN', 'Pelicans': 'NOP', 'Knicks': 'NYK', 'Thunder': 'OKC',
     'Magic': 'ORL', '76ers': 'PHI', 'Suns': 'PHX', 'Trail Blazers': 'POR',
-    'Kings': 'SAC', 'Spurs': 'SAS', 'Raptors': 'TOR', 'Jazz': 'UTA', 'Wizards': 'WAS'
+    'Kings': 'SAC', 'Spurs': 'SAS', 'Raptors': 'TOR', 'Jazz': 'UTA', 'Wizards': 'WAS', 'SuperSonics':'SEA', 'Bobcats':'CHA'
 }
 
 # ---- Map and filter only current teams ----
@@ -52,6 +52,11 @@ records = {team: {opp: {"W": 0, "L": 0} for opp in current_teams if opp != team}
 # ---- Count wins/losses ----
 for _, row in games_df.iterrows():
     winner, loser = row['Winner'], row['Loser']
+
+    # Skip self-matches (e.g., Hornets/Bobcats merged to same abbrev)
+    if winner == loser:
+        continue
+
     records[winner][loser]['W'] += 1
     records[loser][winner]['L'] += 1
 
