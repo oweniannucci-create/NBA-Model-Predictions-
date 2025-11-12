@@ -11,29 +11,6 @@ import pandas as pd
 import re
 from pandasgui import show
 
-
-
-
-games_df = DataFetcher.get_cleaned_games_with_winner_column()
-stats_df = DataFetcher.get_teamaveragestatistics_from_year()
-draft_df = DataFetcher.get_average_draft_data()
-rest_days = DataFetcher.get_rest_days()
-player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
-city_populations = DataFetcher.get_city_population()
-player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
-
-print(games_df.info())
-print(stats_df.info())
-print(draft_df.info())
-print(player_stats.info())
-print(rest_days.info())
-print(city_populations.info())
-print(player_winshare.info())
-
-
-# -----------------------------
-# Map abbreviations to full team names (with city) to match trade CSV
-# -----------------------------
 nba_team_abbreviations_full = {
     "ATL": "Atlanta Hawks",
     "BOS": "Boston Celtics",
@@ -73,6 +50,80 @@ nba_team_abbreviations_full = {
     "SEA": "Seattle SuperSonics",
     "VAN": "Memphis Grizzlies"
 }
+nba_team_abbreviations = {
+    "ATL": "Hawks",
+    "BOS": "Celtics",
+    "NJN": "Nets",
+    "BRK": "Nets",
+    "BKN": "Nets",
+    "CHH": "Hornets",
+    "CHA": "Hornets",
+    "CHI": "Bulls",
+    "CLE": "Cavaliers",
+    "DAL": "Mavericks",
+    "DEN": "Nuggets",
+    "DET": "Pistons",
+    "GSW": "Warriors",
+    "HOU": "Rockets",
+    "IND": "Pacers",
+    "LAC": "Clippers",
+    "LAL": "Lakers",
+    "VAN": "Grizzlies",
+    "MEM": "Grizzlies",
+    "MIA": "Heat",
+    "MIL": "Bucks",
+    "MIN": "Timberwolves",
+    "NOH": "Pelicans",
+    "NOP": "Pelicans",
+    "NYK": "Knicks",
+    "OKC": "Thunder",
+    "ORL": "Magic",
+    "PHI": "76ers",
+    "PHO": "Suns",
+    "PHX": "Suns",
+    "POR": "Trail Blazers",
+    "SAC": "Kings",
+    "SAS": "Spurs",
+    "TOR": "Raptors",
+    "UTA": "Jazz",
+    "WAS": "Wizards",
+    "SEA": "SuperSonics"
+}
+
+name_to_abbrev = {v: k for k, v in nba_team_abbreviations.items()}
+name_to_abbrev['Bobcats']="CHA"
+
+
+valid_teams = set(name_to_abbrev.keys())
+games_df = DataFetcher.get_cleaned_games_with_winner_column()
+stats_df = DataFetcher.get_teamaveragestatistics_from_year()
+draft_df = DataFetcher.get_average_draft_data()
+rest_days = DataFetcher.get_rest_days()
+player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
+city_populations = DataFetcher.get_city_population()
+player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
+win_matrix = pd.read_csv('NBA_Win_Percentages.csv', index_col=0)
+current_games = pd.read_csv("nba_schedule_2025_26.csv")
+current_games = current_games[
+    current_games["hometeamname"].isin(valid_teams) &
+    current_games["awayteamname"].isin(valid_teams)
+].copy()
+games_df = pd.concat([games_df, current_games], ignore_index=True)
+
+
+print(games_df.info())
+print(stats_df.info())
+print(draft_df.info())
+print(player_stats.info())
+print(rest_days.info())
+print(city_populations.info())
+print(player_winshare.info())
+
+
+# -----------------------------
+# Map abbreviations to full team names (with city) to match trade CSV
+# -----------------------------
+
 
 # Add full team name column to player_stats
 player_stats['TEAM_FULL_NAME'] = player_stats['Team'].map(nba_team_abbreviations_full)
@@ -130,10 +181,10 @@ player_winshare = update_player_stats_for_trades(player_winshare, trades)
 inv_team_dict = {v: k for k, v in nba_team_abbreviations_full.items()}
 player_stats['Team']=player_stats['TEAM_FULL_NAME'].map(inv_team_dict)
 player_winshare['TEAM_ABBREVIATION']=player_winshare['TEAM_FULL_NAME'].map(inv_team_dict)
+player_winshare.drop('TEAM_FULL_NAME', axis=1)
+player_stats.drop('TEAM_FULL_NAME', axis=1)
 
-# --- Show sample to verify mappings ---
-sample_check = player_stats[['Player', 'Season', 'TEAM_FULL_NAME', 'Team']].head(50)
-show(sample_check)
+
 
 
 
@@ -142,52 +193,25 @@ show(sample_check)
 
 #Comment
 
-nba_team_abbreviations = {
-    "ATL": "Hawks",
-    "BOS": "Celtics",
-    "BKN": "Nets",
-    "BRK": "Nets",
-    "CHH": "Hornets",
-    "CHA": "Hornets",
-    "CHI": "Bulls",
-    "CLE": "Cavaliers",
-    "DAL": "Mavericks",
-    "DEN": "Nuggets",
-    "DET": "Pistons",
-    "GSW": "Warriors",
-    "HOU": "Rockets",
-    "IND": "Pacers",
-    "LAC": "Clippers",
-    "LAL": "Lakers",
-    "MEM": "Grizzlies",
-    "MIA": "Heat",
-    "MIL": "Bucks",
-    "MIN": "Timberwolves",
-    "NOP": "Pelicans",
-    "NOH": "Pelicans",
-    "NYK": "Knicks",
-    "OKC": "Thunder",
-    "ORL": "Magic",
-    "PHI": "76ers",
-    "PHX": "Suns",
-    "PHO": "Suns",
-    "POR": "Trail Blazers",
-    "SAC": "Kings",
-    "SAS": "Spurs",
-    "TOR": "Raptors",
-    "UTA": "Jazz",
-    "WAS": "Wizards",
-    "NJN": "Nets",
-    "SEA": "SuperSonics",
-    "VAN": "Grizzlies"
-}
+
+def get_win_pct(row):
+    # Convert full names to abbreviations
+    home_abbrev = name_to_abbrev.get(row["hometeamname"])
+    away_abbrev = name_to_abbrev.get(row["awayteamname"])
+
+    # Handle missing teams gracefully
+    if home_abbrev not in win_matrix.index or away_abbrev not in win_matrix.columns:
+        print(row["hometeamname"] +" or "+ row["awayteamname"] +" not in dictionary")
+        return None
+
+    return win_matrix.loc[home_abbrev, away_abbrev]
 
 def drop_columns_from_merged(merged_df):
     columns_to_drop = ['away_City', 'away_Year', 'home_City', 'home_Year', 'census_year', 'away_teamname', 'home_teamname', 'away_TEAM_ABBREVIATION',
                        'away_Season_y', 'away_Team_y', 'away_Team_x', 'away_Season_x',
                        'home_Season_y', 'home_Team_y', 'home_Team_x', 'home_Season_x', 'awayteamname', 'hometeamname', 'awayteamid',
                        'hometeamid', 'awayscore', 'homescore', 'prev_season', 'season', 'seriesgamenumber', 'gamesublabel', 'gamelabel', 'gametype', 'winner',
-                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid','season_end']
+                       'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid','season_end', 'status_text', 'played']
 
     merged_df = merged_df.drop(columns_to_drop, axis=1)
     for i in range(1, 16):
@@ -288,11 +312,14 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
         except:
             return None
 
+
     # Convert the season start year to integer
     games['season_start'] = games['season'].str.split('-').str[0].astype(int)
 
     # Keep only seasons starting in 2000 or later
     games = games[games['season_start'] >= 2000].copy()
+    games["HomeWinPctVsAway"] = games.apply(get_win_pct, axis=1)
+    show(games)
 
     # Optionally, drop the helper column
     games.drop(columns=['season_start'], inplace=True)
@@ -345,7 +372,7 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
 
     #Merge rest days
     rest_days['gameDate'] = pd.to_datetime(rest_days['gameDate'])
-    games['gamedate'] = pd.to_datetime(games['gamedate'])
+    games['gamedate'] = pd.to_datetime(games['gamedate'], format='ISO8601')
 
     games = games.merge(
         rest_days.add_prefix('home_'),
@@ -433,14 +460,14 @@ merged['away_travel_distance'] = merged.apply(lambda x: travel_distance.get_dist
 #merged = drop_columns_from_merged(merged)
 merged = merged.fillna(0)
 merged.to_csv('total_training_set.csv', index=False)
-show(merged.head())
 
 
 merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
 
 train = merged[merged['season_end'] < 2024]
 test = merged[merged['season_end'] > 2024]
-show(test)
+
+games_2024_25 = test[["hometeamname","awayteamname","gamedate","winner_binary"]]
 
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
@@ -451,6 +478,7 @@ x_train = train.drop(columns=["winner_binary"], axis=1)
 y_test = test["winner_binary"]
 x_test = test.drop(columns=["winner_binary"], axis=1)
 
+show(x_train.head())
 
 # target = merged['winner_binary']
 # predict = merged.drop('winner_binary', axis=1)
@@ -473,7 +501,7 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 )
 
 nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1157,)),
+    tf.keras.layers.Input(shape=(1189,)),
     tf.keras.layers.Dense(2312, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
@@ -495,8 +523,8 @@ y_prob = nn_model.predict(x_test)
 # Convert to 0s and 1s
 y_pred = (y_prob > 0.5).astype(int)
 
-
+games_2024_25["pred"] = y_pred
 
 
 print(classification_report(y_test,y_pred))
-print(y_pred)
+show(games_2024_25)
