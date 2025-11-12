@@ -44,9 +44,9 @@ games_df['Winner'] = games_df.apply(
 games_df['Loser'] = games_df.apply(
     lambda x: x['Away_Abbr'] if x[HOME_PTS_COL] > x[AWAY_PTS_COL] else x['Home_Abbr'], axis=1
 )
+current_teams = list(set(team_mapping.values()))
 
 # ---- Initialize win/loss dictionary ----
-current_teams = list(team_mapping.values())
 records = {team: {opp: {"W": 0, "L": 0} for opp in current_teams if opp != team} for team in current_teams}
 
 # ---- Count wins/losses ----
