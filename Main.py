@@ -212,7 +212,7 @@ def drop_columns_from_merged(merged_df):
                        'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid','season_end', 'status_text', 'played']
 
     merged_df = merged_df.drop(columns_to_drop, axis=1)
-    for i in range(1, 6):
+    for i in range(1, 16):
         merged_df = merged_df.drop('home_Pos_p' + str(i), axis=1)
         merged_df = merged_df.drop('home_Player_p' + str(i), axis=1)
         merged_df = merged_df.drop('away_Pos_p' + str(i), axis=1)
@@ -223,7 +223,7 @@ def drop_columns_from_merged(merged_df):
         merged_df = merged_df.drop('home_TEAM_FULL_NAME_stats_p' + str(i), axis=1)
 
     for side in ["home", "away"]:
-        for i in range(1, 6):
+        for i in range(1, 16):
             col = f"{side}_Awards_p{i}"
             if col in merged_df.columns:
                 merged_df.drop(columns=[col], inplace=True)
@@ -388,7 +388,7 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
         player_full
         .sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, False])
         .groupby(['Season', 'TEAM_ABBREVIATION'])
-        .head(5)
+        .head(15)
         .copy()
     )
 
@@ -460,8 +460,8 @@ merged.to_csv('total_training_set.csv', index=False)
 
 
 merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
-merged = merged[merged["gametype"] != "Playoffs"]
-merged = merged[merged["gametype"] != "Play-in Tournament"]
+# merged = merged[merged["gametype"] != "Playoffs"]
+# merged = merged[merged["gametype"] != "Play-in Tournament"]
 
 train = merged[merged['season_end'] < 2024 ]
 test = merged[merged['season_end'] == 2025]
@@ -499,8 +499,8 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 )
 
 nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(428,)),
-    tf.keras.layers.Dense(856, activation='relu'),
+    tf.keras.layers.Input(shape=(1188,)),
+    tf.keras.layers.Dense(2318, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
