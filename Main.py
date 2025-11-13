@@ -4,8 +4,6 @@ import DataFetcher
 import travel_distance
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SequentialFeatureSelector
-from sklearn.linear_model import RidgeClassifier
 import tensorflow as tf
 import pandas as pd
 import re
@@ -214,7 +212,7 @@ def drop_columns_from_merged(merged_df):
                        'home_TEAM_ABBREVIATION', 'home_gameDate', 'away_gameDate', 'hometeamcity', 'awayteamcity', 'gamedate', 'gameid','season_end', 'status_text', 'played']
 
     merged_df = merged_df.drop(columns_to_drop, axis=1)
-    for i in range(1, 16):
+    for i in range(1, 6):
         merged_df = merged_df.drop('home_Pos_p' + str(i), axis=1)
         merged_df = merged_df.drop('home_Player_p' + str(i), axis=1)
         merged_df = merged_df.drop('away_Pos_p' + str(i), axis=1)
@@ -225,7 +223,7 @@ def drop_columns_from_merged(merged_df):
         merged_df = merged_df.drop('home_TEAM_FULL_NAME_stats_p' + str(i), axis=1)
 
     for side in ["home", "away"]:
-        for i in range(1, 16):
+        for i in range(1, 6):
             col = f"{side}_Awards_p{i}"
             if col in merged_df.columns:
                 merged_df.drop(columns=[col], inplace=True)
@@ -317,9 +315,8 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
     games['season_start'] = games['season'].str.split('-').str[0].astype(int)
 
     # Keep only seasons starting in 2000 or later
-    games = games[games['season_start'] >= 2000].copy()
+    games = games[games['season_start'] >= 2005].copy()
     games["HomeWinPctVsAway"] = games.apply(get_win_pct, axis=1)
-    show(games)
 
     # Optionally, drop the helper column
     games.drop(columns=['season_start'], inplace=True)
@@ -391,7 +388,7 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
         player_full
         .sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, False])
         .groupby(['Season', 'TEAM_ABBREVIATION'])
-        .head(15)
+        .head(5)
         .copy()
     )
 
@@ -463,9 +460,11 @@ merged.to_csv('total_training_set.csv', index=False)
 
 
 merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
+merged = merged[merged["gametype"] != "Playoffs"]
+merged = merged[merged["gametype"] != "Play-in Tournament"]
 
-train = merged[merged['season_end'] < 2024]
-test = merged[merged['season_end'] > 2024]
+train = merged[merged['season_end'] < 2024 ]
+test = merged[merged['season_end'] == 2025]
 
 games_2024_25 = test[["hometeamname","awayteamname","gamedate","winner_binary"]]
 
@@ -478,7 +477,6 @@ x_train = train.drop(columns=["winner_binary"], axis=1)
 y_test = test["winner_binary"]
 x_test = test.drop(columns=["winner_binary"], axis=1)
 
-show(x_train.head())
 
 # target = merged['winner_binary']
 # predict = merged.drop('winner_binary', axis=1)
@@ -501,8 +499,8 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
 )
 
 nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1189,)),
-    tf.keras.layers.Dense(2312, activation='relu'),
+    tf.keras.layers.Input(shape=(428,)),
+    tf.keras.layers.Dense(856, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
@@ -523,7 +521,8 @@ y_prob = nn_model.predict(x_test)
 # Convert to 0s and 1s
 y_pred = (y_prob > 0.5).astype(int)
 
-games_2024_25["pred"] = y_pred
+games_2024_25["home_team_win_pred"] = y_pred
+games_2024_25["probability_home_team_win"] = y_prob
 
 
 print(classification_report(y_test,y_pred))
