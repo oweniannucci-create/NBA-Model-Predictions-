@@ -461,10 +461,11 @@ merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
 # merged = merged[merged["gametype"] != "Playoffs"]
 # merged = merged[merged["gametype"] != "Play-in Tournament"]
 
-train = merged[merged['season_end'] < 2025 ]
-test = merged[merged['season_end'] == 2025]
+train = merged[merged['season_end'] < 2026 ]
+test = merged[merged['season_end'] == 2026]
 
-games_2024_25 = test[["hometeamname","awayteamname","gamedate","winner_binary"]]
+
+games_2024_25 = test[["hometeamname","awayteamname","gamedate"]]
 
 train = drop_columns_from_merged(train)
 test = drop_columns_from_merged(test)
@@ -501,15 +502,13 @@ params = {
 }
 
 # Evaluation sets
-evals = [(dtrain, 'train'), (dtest, 'eval')]
+#evals = [(dtrain, 'train'), (dtest, 'eval')]
 
 # Train with early stopping
 bst = xgb.train(
     params=params,
     dtrain=dtrain,
     num_boost_round=300,
-    evals=evals,
-    early_stopping_rounds=20,
     verbose_eval=True
 )
 
@@ -517,9 +516,6 @@ y_prob_xgb = bst.predict(dtest)
 # Make predictions
 y_pred_xgb = (y_prob_xgb > 0.5).astype(int)
 
-# Evaluate accuracy
-accuracy = accuracy_score(y_test, y_pred_xgb)
-print("Test Accuracy:", accuracy)
 #rr = RidgeClassifier(alpha=1)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(
@@ -542,14 +538,6 @@ nn_model = tf.keras.Sequential([
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
-# sfs = SequentialFeatureSelector(rr, n_features_to_select=100, direction='forward', cv=KFold(n_splits=3, shuffle=True, random_state=42), scoring='accuracy', n_jobs=-1)
-# sfs.fit(x_train, y_train)
-# predictors = sfs.transform(x_train)
-# print(predictors.info())
-# print(predictors)
-#
-# rr.fit(x_train[predictors], y_train)
-
 nn_model.compile(optimizer=tf.keras.optimizers.Adam(1e-4), loss='binary_crossentropy', metrics=['accuracy'])
 
 history = nn_model.fit(x_train, y_train, epochs=20, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback, early_stop])
@@ -564,9 +552,10 @@ games_2024_25["probability_home_team_win_nn"] = y_prob
 games_2024_25["home_team_win_pred_xgb"] = y_pred_xgb
 games_2024_25["probability_home_team_win_xgb"] = y_prob_xgb
 
-print("Neural Network Report:")
-print(classification_report(y_test,y_pred))
+games_2024_25.to_csv('2025-2026-predictions.csv', index=False)
 
-print("XGBoost Report:")
-print(classification_report(y_test,y_pred_xgb))
-show(games_2024_25)
+# print("Neural Network Report:")
+# print(classification_report(y_test,y_pred))
+#
+# print("XGBoost Report:")
+# print(classification_report(y_test,y_pred_xgb))
