@@ -2,7 +2,8 @@ from sklearn.metrics import classification_report
 
 import DataFetcher
 import travel_distance
-from sklearn.model_selection import train_test_split, KFold
+import xgboost as xgb
+from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 import pandas as pd
@@ -88,72 +89,67 @@ nba_team_abbreviations = {
     "SEA": "SuperSonics"
 }
 
-name_to_abbrev = {v: k for k, v in nba_team_abbreviations.items()}
-name_to_abbrev['Bobcats']="CHA"
-
-
-valid_teams = set(name_to_abbrev.keys())
-games_df = DataFetcher.get_cleaned_games_with_winner_column()
-stats_df = DataFetcher.get_teamaveragestatistics_from_year()
-draft_df = DataFetcher.get_average_draft_data()
-rest_days = DataFetcher.get_rest_days()
-player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
-city_populations = DataFetcher.get_city_population()
-player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
-win_matrix = pd.read_csv('NBA_Win_Percentages.csv', index_col=0)
-current_games = pd.read_csv("nba_schedule_2025_26.csv")
-current_games = current_games[
-    current_games["hometeamname"].isin(valid_teams) &
-    current_games["awayteamname"].isin(valid_teams)
-].copy()
-games_df = pd.concat([games_df, current_games], ignore_index=True)
-
-
-print(games_df.info())
-print(stats_df.info())
-print(draft_df.info())
-print(player_stats.info())
-print(rest_days.info())
-print(city_populations.info())
-print(player_winshare.info())
-
-
-# -----------------------------
-# Map abbreviations to full team names (with city) to match trade CSV
-# -----------------------------
-
-
-# Add full team name column to player_stats
-player_stats['TEAM_FULL_NAME'] = player_stats['Team'].map(nba_team_abbreviations_full)
-player_winshare['TEAM_FULL_NAME'] = player_winshare['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
-
-# --- Check mapping worked ---
-# print(player_stats[['Player', 'Team', 'TEAM_FULL_NAME']].head(10))
-
-# -----------------------------
-# Load trade data and adjust stats for traded players
-# -----------------------------
-trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
-
-# # Read the trade CSV into a variable
-# trade_data = pd.read_csv("nba_trades_combined_sorted.csv")
+# name_to_abbrev = {v: k for k, v in nba_team_abbreviations.items()}
+# name_to_abbrev['Bobcats']="CHA"
 #
-# # Check a specific player
-# print(trade_data[trade_data['Player'] == 'Kevin Durant'])
-
-
-
-# Map abbreviations in trade data to full team names (using existing mapping)
-if 'From' in trades.columns and 'To' in trades.columns:
-    trades['From'] = trades['From'].map(nba_team_abbreviations_full).fillna(trades['From'])
-    trades['To'] = trades['To'].map(nba_team_abbreviations_full).fillna(trades['To'])
-
-# Create a season mapping dictionary for all years 2003–2026
-season_mapping = {year: f"{year-1}-{str(year)[-2:]}" for year in range(2003, 2026)}
-
-# Apply this mapping to your trade data
-if 'Season' in trades.columns:
-    trades['Season'] = trades['Season'].map(season_mapping)
+#
+# valid_teams = set(name_to_abbrev.keys())
+# games_df = DataFetcher.get_cleaned_games_with_winner_column()
+# stats_df = DataFetcher.get_teamaveragestatistics_from_year()
+# draft_df = DataFetcher.get_average_draft_data()
+# rest_days = DataFetcher.get_rest_days()
+# player_stats = pd.read_csv("nba_per_game_stats_all_2000_2025.csv")
+# city_populations = DataFetcher.get_city_population()
+# player_winshare = pd.read_csv('nba_players_with_winshares_all_2000_2025.csv').sort_values(['Season', 'TEAM_ABBREVIATION', 'MP'], ascending=[True, True, True])
+# win_matrix = pd.read_csv('NBA_Win_Percentages.csv', index_col=0)
+#
+#
+#
+# print(games_df.info())
+# print(stats_df.info())
+# print(draft_df.info())
+# print(player_stats.info())
+# print(rest_days.info())
+# print(city_populations.info())
+# print(player_winshare.info())
+#
+#
+# # -----------------------------
+# # Map abbreviations to full team names (with city) to match trade CSV
+# # -----------------------------
+#
+#
+# # Add full team name column to player_stats
+# player_stats['TEAM_FULL_NAME'] = player_stats['Team'].map(nba_team_abbreviations_full)
+# player_winshare['TEAM_FULL_NAME'] = player_winshare['TEAM_ABBREVIATION'].map(nba_team_abbreviations_full)
+#
+# # --- Check mapping worked ---
+# # print(player_stats[['Player', 'Team', 'TEAM_FULL_NAME']].head(10))
+#
+# # -----------------------------
+# # Load trade data and adjust stats for traded players
+# # -----------------------------
+# trades = pd.read_csv("nba_trades_combined_sorted.csv")  # Columns: Player, From_Team, To_Team, Year
+#
+# # # Read the trade CSV into a variable
+# # trade_data = pd.read_csv("nba_trades_combined_sorted.csv")
+# #
+# # # Check a specific player
+# # print(trade_data[trade_data['Player'] == 'Kevin Durant'])
+#
+#
+#
+# # Map abbreviations in trade data to full team names (using existing mapping)
+# if 'From' in trades.columns and 'To' in trades.columns:
+#     trades['From'] = trades['From'].map(nba_team_abbreviations_full).fillna(trades['From'])
+#     trades['To'] = trades['To'].map(nba_team_abbreviations_full).fillna(trades['To'])
+#
+# # Create a season mapping dictionary for all years 2003–2026
+# season_mapping = {year: f"{year-1}-{str(year)[-2:]}" for year in range(2003, 2026)}
+#
+# # Apply this mapping to your trade data
+# if 'Season' in trades.columns:
+#     trades['Season'] = trades['Season'].map(season_mapping)
 
 
 
@@ -174,13 +170,13 @@ def update_player_stats_for_trades(player_stats, trades):
 
 # Apply trade adjustment
 
-player_stats = update_player_stats_for_trades(player_stats, trades)
-player_winshare = update_player_stats_for_trades(player_winshare, trades)
-inv_team_dict = {v: k for k, v in nba_team_abbreviations_full.items()}
-player_stats['Team']=player_stats['TEAM_FULL_NAME'].map(inv_team_dict)
-player_winshare['TEAM_ABBREVIATION']=player_winshare['TEAM_FULL_NAME'].map(inv_team_dict)
-player_winshare.drop('TEAM_FULL_NAME', axis=1)
-player_stats.drop('TEAM_FULL_NAME', axis=1)
+# player_stats = update_player_stats_for_trades(player_stats, trades)
+# player_winshare = update_player_stats_for_trades(player_winshare, trades)
+# inv_team_dict = {v: k for k, v in nba_team_abbreviations_full.items()}
+# player_stats['Team']=player_stats['TEAM_FULL_NAME'].map(inv_team_dict)
+# player_winshare['TEAM_ABBREVIATION']=player_winshare['TEAM_FULL_NAME'].map(inv_team_dict)
+# player_winshare.drop('TEAM_FULL_NAME', axis=1)
+# player_stats.drop('TEAM_FULL_NAME', axis=1)
 
 
 
@@ -452,10 +448,12 @@ def combine_game_team_draft_data(games, team_stats, draft_data, player_advanced,
 
     return games
 
-merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winshare, player_stats, city_populations)
-merged['away_travel_distance'] = merged.apply(lambda x: travel_distance.get_distance_between_cities(x['awayteamcity'], x['hometeamcity']), axis=1)
-#merged = drop_columns_from_merged(merged)
-merged = merged.fillna(0)
+
+# merged = combine_game_team_draft_data(games_df, stats_df, draft_df, player_winshare, player_stats, city_populations)
+# merged['away_travel_distance'] = merged.apply(lambda x: travel_distance.get_distance_between_cities(x['awayteamcity'], x['hometeamcity']), axis=1)
+# #merged = drop_columns_from_merged(merged)
+# merged = merged.fillna(0)
+merged = pd.read_csv('total_training_set.csv')
 merged.to_csv('total_training_set.csv', index=False)
 
 
@@ -463,7 +461,7 @@ merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
 # merged = merged[merged["gametype"] != "Playoffs"]
 # merged = merged[merged["gametype"] != "Play-in Tournament"]
 
-train = merged[merged['season_end'] < 2024 ]
+train = merged[merged['season_end'] < 2025 ]
 test = merged[merged['season_end'] == 2025]
 
 games_2024_25 = test[["hometeamname","awayteamname","gamedate","winner_binary"]]
@@ -488,7 +486,40 @@ scaler=StandardScaler()
 x_train = scaler.fit_transform(x_train)
 x_test = scaler.transform(x_test)
 
+# Convert to DMatrix (XGBoost native format)
+dtrain = xgb.DMatrix(x_train, label=y_train)
+dtest = xgb.DMatrix(x_test, label=y_test)
 
+params = {
+    'objective': 'binary:logistic',
+    'learning_rate': 0.01,
+    'max_depth': 8,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'eval_metric': 'logloss',
+    'seed': 42
+}
+
+# Evaluation sets
+evals = [(dtrain, 'train'), (dtest, 'eval')]
+
+# Train with early stopping
+bst = xgb.train(
+    params=params,
+    dtrain=dtrain,
+    num_boost_round=300,
+    evals=evals,
+    early_stopping_rounds=20,
+    verbose_eval=True
+)
+
+y_prob_xgb = bst.predict(dtest)
+# Make predictions
+y_pred_xgb = (y_prob_xgb > 0.5).astype(int)
+
+# Evaluate accuracy
+accuracy = accuracy_score(y_test, y_pred_xgb)
+print("Test Accuracy:", accuracy)
 #rr = RidgeClassifier(alpha=1)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(
@@ -498,9 +529,16 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(
     update_freq="epoch",
 )
 
+early_stop = tf.keras.callbacks.EarlyStopping(
+    patience=20, restore_best_weights=True, monitor='val_loss'
+)
+
 nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1188,)),
-    tf.keras.layers.Dense(2318, activation='relu'),
+    tf.keras.layers.Input(shape=(1192,)),
+    tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
+    tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 
@@ -512,18 +550,23 @@ nn_model = tf.keras.Sequential([
 #
 # rr.fit(x_train[predictors], y_train)
 
-nn_model.compile(optimizer=tf.keras.optimizers.Adam(0.001), loss='binary_crossentropy', metrics=['accuracy'])
+nn_model.compile(optimizer=tf.keras.optimizers.Adam(1e-4), loss='binary_crossentropy', metrics=['accuracy'])
 
-history = nn_model.fit(x_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback])
+history = nn_model.fit(x_train, y_train, epochs=20, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback, early_stop])
 
 y_prob = nn_model.predict(x_test)
 
-# Convert to 0s and 1s
+#Convert to 0s and 1s
 y_pred = (y_prob > 0.5).astype(int)
 
-games_2024_25["home_team_win_pred"] = y_pred
-games_2024_25["probability_home_team_win"] = y_prob
+games_2024_25["home_team_win_pred_nn"] = y_pred
+games_2024_25["probability_home_team_win_nn"] = y_prob
+games_2024_25["home_team_win_pred_xgb"] = y_pred_xgb
+games_2024_25["probability_home_team_win_xgb"] = y_prob_xgb
 
-
+print("Neural Network Report:")
 print(classification_report(y_test,y_pred))
+
+print("XGBoost Report:")
+print(classification_report(y_test,y_pred_xgb))
 show(games_2024_25)

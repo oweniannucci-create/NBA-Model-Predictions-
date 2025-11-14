@@ -1,8 +1,53 @@
 from nba_api.stats.endpoints import DraftHistory
 import pandas as pd
 import time
-#from pandasgui import show
+from pandasgui import show
 
+nba_team_abbreviations = {
+    "ATL": "Hawks",
+    "BOS": "Celtics",
+    "NJN": "Nets",
+    "BRK": "Nets",
+    "BKN": "Nets",
+    "CHH": "Hornets",
+    "CHA": "Hornets",
+    "CHI": "Bulls",
+    "CLE": "Cavaliers",
+    "DAL": "Mavericks",
+    "DEN": "Nuggets",
+    "DET": "Pistons",
+    "GSW": "Warriors",
+    "HOU": "Rockets",
+    "IND": "Pacers",
+    "LAC": "Clippers",
+    "LAL": "Lakers",
+    "VAN": "Grizzlies",
+    "MEM": "Grizzlies",
+    "MIA": "Heat",
+    "MIL": "Bucks",
+    "MIN": "Timberwolves",
+    "NOH": "Pelicans",
+    "NOP": "Pelicans",
+    "NYK": "Knicks",
+    "OKC": "Thunder",
+    "ORL": "Magic",
+    "PHI": "76ers",
+    "PHO": "Suns",
+    "PHX": "Suns",
+    "POR": "Trail Blazers",
+    "SAC": "Kings",
+    "SAS": "Spurs",
+    "TOR": "Raptors",
+    "UTA": "Jazz",
+    "WAS": "Wizards",
+    "SEA": "SuperSonics"
+}
+
+name_to_abbrev = {v: k for k, v in nba_team_abbreviations.items()}
+name_to_abbrev['Bobcats']="CHA"
+
+
+valid_teams = set(name_to_abbrev.keys())
 
 def get_city_population():
     # NBA team–city mapping
@@ -131,12 +176,9 @@ def get_average_draft_data():
 
 
 def get_rest_days():
-    filename = 'Data/Games.csv'  # CSV Name
-    okc_games = []
 
-    df = pd.read_csv(filename)
-
-    df['gameDate'] = pd.to_datetime(df['gameDate'])
+    df = get_cleaned_games_with_winner_column(False)
+    df['gameDate'] = pd.to_datetime(df['gameDate'], format='ISO8601')
 
     # Data Frame
     home = df[['hometeamName', 'gameDate']].rename(columns={'hometeamName': 'Team'})
@@ -153,7 +195,7 @@ def get_rest_days():
 
     return all_games
 
-def get_cleaned_games_with_winner_column():
+def get_cleaned_games_with_winner_column(toLower=True):
     # Load your dataset
     df = pd.read_csv("Data/Games.csv")
 
@@ -175,21 +217,31 @@ def get_cleaned_games_with_winner_column():
     # Apply the season function to create a new column
     df["season"] = df["gameDate"].apply(assign_season)
 
+
     # Save the cleaned version to a new file
     df.to_csv("games_cleaned.csv", index=False)
 
     #print("Columns dropped and 'season' column added successfully!")
     #print(df.head())
-
-
-    # Standardize column names just in case (lowercase all)
     df.columns = df.columns.str.lower()
+    if(toLower):
+        # Standardize column names just in case (lowercase all)
 
-    # Convert winner column into 1 (home team) or 0 (away team)
-    df["winner_binary"] = df.apply(
-        lambda row: 1 if row["winner"] == row["hometeamid"] else 0, axis=1
-    )
 
+        # Convert winner column into 1 (home team) or 0 (away team)
+        df["winner_binary"] = df.apply(
+            lambda row: 1 if row["winner"] == row["hometeamid"] else 0, axis=1
+        )
+
+
+    current_games = pd.read_csv("nba_schedule_2025_26.csv")
+    current_games = current_games[
+        current_games["hometeamname"].isin(valid_teams) &
+        current_games["awayteamname"].isin(valid_teams)
+        ].copy()
+    df = pd.concat([df, current_games], ignore_index=True)
+    if(not toLower):
+        df = df.rename(columns={"gamedate":"gameDate","hometeamname":"hometeamName", "awayteamname":"awayteamName"})
     # (Optional) drop the original winner column
     # df = df.drop(columns=["winner"])
 
