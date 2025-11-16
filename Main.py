@@ -9,6 +9,10 @@ import tensorflow as tf
 import pandas as pd
 import re
 from pandasgui import show
+import numpy as np
+from sklearn.model_selection import KFold, train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, log_loss, roc_auc_score
 
 nba_team_abbreviations_full = {
     "ATL": "Atlanta Hawks",
@@ -462,100 +466,298 @@ merged["season_end"] = merged['season'].apply(lambda x: int(x.split("-")[1]))
 # merged = merged[merged["gametype"] != "Play-in Tournament"]
 
 train = merged[merged['season_end'] < 2026 ]
-test = merged[merged['season_end'] == 2026]
+future = merged[merged['season_end'] == 2026]
+
+games_2025_2026 = future[["hometeamname","awayteamname","gamedate"]]
 
 
-games_2024_25 = test[["hometeamname","awayteamname","gamedate"]]
+train = drop_columns_from_merged(train).copy()
+future = drop_columns_from_merged(future).copy()
 
-train = drop_columns_from_merged(train)
-test = drop_columns_from_merged(test)
+y = train["winner_binary"]
+X = train.drop(columns=["winner_binary"], axis=1)
 
-y_train = train["winner_binary"]
-x_train = train.drop(columns=["winner_binary"], axis=1)
-
-y_test = test["winner_binary"]
-x_test = test.drop(columns=["winner_binary"], axis=1)
+X_future = future.drop(columns=["winner_binary"], axis=1)
 
 
-# target = merged['winner_binary']
-# predict = merged.drop('winner_binary', axis=1)
-#
-# x_train, x_test, y_train, y_test = train_test_split(predict, target, test_size=0.2, random_state=6)
 
 
 scaler=StandardScaler()
-x_train = scaler.fit_transform(x_train)
-x_test = scaler.transform(x_test)
+X = scaler.fit_transform(X)
+X_future = scaler.fit_transform(X_future)
 
-# Convert to DMatrix (XGBoost native format)
-dtrain = xgb.DMatrix(x_train, label=y_train)
-dtest = xgb.DMatrix(x_test, label=y_test)
+n = len(train)
 
-params = {
-    'objective': 'binary:logistic',
-    'learning_rate': 0.01,
-    'max_depth': 8,
-    'subsample': 0.8,
-    'colsample_bytree': 0.8,
-    'eval_metric': 'logloss',
-    'seed': 42
-}
+oof_xgb_prob = np.zeros(n)
+oof_nn_prob = np.zeros(n)
 
-# Evaluation sets
-#evals = [(dtrain, 'train'), (dtest, 'eval')]
+# -----------------------------
+# K FOLD SPLIT
+# -----------------------------
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-# Train with early stopping
-bst = xgb.train(
-    params=params,
-    dtrain=dtrain,
-    num_boost_round=300,
-    verbose_eval=True
-)
 
-y_prob_xgb = bst.predict(dtest)
-# Make predictions
-y_pred_xgb = (y_prob_xgb > 0.5).astype(int)
+fold_idx = 1
+for train_idx, valid_idx in kf.split(X):
+    print(f"\n===== FOLD {fold_idx} =====")
 
-#rr = RidgeClassifier(alpha=1)
+    X_train, X_valid = X[train_idx], X[valid_idx]
+    y_train, y_valid = y[train_idx], y[valid_idx]
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(
-    log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
-    histogram_freq=1,  # How often to log histogram visualizations
-    embeddings_freq=1,  # How often to log embedding visualizations
-    update_freq="epoch",
-)
+    # --------------------------------------------------------
+    # XGBOOST OOF PREDICTIONS
+    # --------------------------------------------------------
+    dtrain = xgb.DMatrix(X_train, label=y_train)
+    dvalid = xgb.DMatrix(X_valid, label=y_valid)
 
-early_stop = tf.keras.callbacks.EarlyStopping(
-    patience=20, restore_best_weights=True, monitor='val_loss'
-)
+    params = {
+        'objective': 'binary:logistic',
+        'learning_rate': 0.01,
+        'max_depth': 8,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        'eval_metric': 'logloss',
+        'seed': 42
+    }
 
-nn_model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(1192,)),
+    bst = xgb.train(
+        params=params,
+        dtrain=dtrain,
+        num_boost_round=300,
+        verbose_eval=False
+    )
+
+    oof_xgb_prob[valid_idx] = bst.predict(dvalid)
+
+    # --------------------------------------------------------
+    # NEURAL NETWORK OOF PREDICTIONS
+    # --------------------------------------------------------
+    nn_model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(X.shape[1],)),
+        tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+    nn_model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-4),
+        loss='binary_crossentropy'
+    )
+
+    nn_model.fit(
+        X_train, y_train,
+        validation_data=(X_valid, y_valid),
+        epochs=20,
+        batch_size=32,
+        verbose=0
+    )
+
+    oof_nn_prob[valid_idx] = nn_model.predict(X_valid).reshape(-1)
+
+    fold_idx += 1
+
+# -----------------------------
+# BUILD FINAL OOF DATAFRAME
+# -----------------------------
+oof_df = train[["winner_binary"]].copy()
+oof_df["oof_xgb_prob"] = oof_xgb_prob
+oof_df["oof_xgb_pred"] = (oof_xgb_prob > 0.5).astype(int)
+
+oof_df["oof_nn_prob"] = oof_nn_prob
+oof_df["oof_nn_pred"] = (oof_nn_prob > 0.5).astype(int)
+
+oof_df.to_csv("oof_training_dataset.csv", index=False)
+print("\nSaved OOF training dataset: oof_training_dataset.csv")
+
+
+
+
+# -----------------------------
+# TRAIN FINAL MODELS ON FULL DATASET
+# -----------------------------
+# Train final XGB
+dtrain_full = xgb.DMatrix(X, label=y)
+bst_full = xgb.train(params=params, dtrain=dtrain_full, num_boost_round=300)
+
+# Train final NN
+final_nn_model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(X.shape[1],)),
     tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
+final_nn_model.compile(optimizer=tf.keras.optimizers.Adam(1e-4),
+                       loss='binary_crossentropy')
 
-nn_model.compile(optimizer=tf.keras.optimizers.Adam(1e-4), loss='binary_crossentropy', metrics=['accuracy'])
+final_nn_model.fit(X, y, epochs=20, batch_size=32, verbose=1)
 
-history = nn_model.fit(x_train, y_train, epochs=20, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback, early_stop])
+# -----------------------------
+# PREDICT 2025–2026 SEASON
+# -----------------------------
+xgb_future = bst_full.predict(xgb.DMatrix(X_future))
+nn_future = final_nn_model.predict(X_future).reshape(-1)
 
-y_prob = nn_model.predict(x_test)
+future = games_2025_2026.copy()
+future["xgb_prob"] = xgb_future
+future["xgb_pred"] = (xgb_future > 0.5).astype(int)
 
-#Convert to 0s and 1s
-y_pred = (y_prob > 0.5).astype(int)
+future["nn_prob"] = nn_future
+future["nn_pred"] = (nn_future > 0.5).astype(int)
 
-games_2024_25["home_team_win_pred_nn"] = y_pred
-games_2024_25["probability_home_team_win_nn"] = y_prob
-games_2024_25["home_team_win_pred_xgb"] = y_pred_xgb
-games_2024_25["probability_home_team_win_xgb"] = y_prob_xgb
+future.to_csv("2025_2026_predictions_base_models.csv", index=False)
+print("\nSaved 2025–2026 predictions: 2025_2026_predictions_base_models.csv")
 
-games_2024_25.to_csv('2025-2026-predictions.csv', index=False)
 
-# print("Neural Network Report:")
-# print(classification_report(y_test,y_pred))
+
+
+
+
+
+oof_df = pd.read_csv("oof_training_dataset.csv")
+
+# Features for meta-model
+X_meta = oof_df[['oof_xgb_prob', 'oof_nn_prob']].values
+y_meta = oof_df['winner_binary'].values
+
+# -----------------------------
+# SPLIT FOR VALIDATION
+# -----------------------------
+X_train_meta, X_val_meta, y_train_meta, y_val_meta = train_test_split(
+    X_meta, y_meta, test_size=0.2, random_state=42
+)
+
+# -----------------------------
+# TRAIN META-MODEL
+# -----------------------------
+meta_model = LogisticRegression()
+meta_model.fit(X_train_meta, y_train_meta)
+
+# -----------------------------
+# EVALUATE META-MODEL
+# -----------------------------
+y_val_prob = meta_model.predict_proba(X_val_meta)[:, 1]
+y_val_pred = (y_val_prob > 0.5).astype(int)
+
+print("Meta Validation Accuracy:", accuracy_score(y_val_meta, y_val_pred))
+print("Meta Validation Log Loss:", log_loss(y_val_meta, y_val_prob))
+print("Meta Validation ROC AUC:", roc_auc_score(y_val_meta, y_val_prob))
+
+# XGBoost OOF
+y_xgb_prob = oof_df['oof_xgb_prob'].values
+y_xgb_pred = (y_xgb_prob > 0.5).astype(int)
+
+# NN OOF
+y_nn_prob = oof_df['oof_nn_prob'].values
+y_nn_pred = (y_nn_prob > 0.5).astype(int)
+
+print("XGBoost Accuracy:", accuracy_score(y_meta, y_xgb_pred))
+print("NN Accuracy:", accuracy_score(y_meta, y_nn_pred))
+
+print("XGBoost Log Loss:", log_loss(y_meta, y_xgb_prob))
+print("NN Log Loss:", log_loss(y_meta, y_nn_prob))
+
+# -----------------------------
+# APPLY META-MODEL TO FUTURE DATA
+# -----------------------------
+# Assume future_df has predictions from final trained base models
+future_df = pd.read_csv("2025_2026_predictions_base_models.csv")
+
+X_future_meta = future_df[['xgb_prob', 'nn_prob']].values
+future_df['final_meta_prob'] = meta_model.predict_proba(X_future_meta)[:, 1]
+future_df['final_meta_pred'] = (future_df['final_meta_prob'] > 0.5).astype(int)
+
+future_df.to_csv("2025_2026_predictions_meta_model.csv", index=False)
+print("\nSaved 2025–2026 predictions using meta-model.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# # Convert to DMatrix (XGBoost native format)
+# dtrain = xgb.DMatrix(x_train, label=y_train)
+# dtest = xgb.DMatrix(x_test, label=y_test)
 #
-# print("XGBoost Report:")
-# print(classification_report(y_test,y_pred_xgb))
+# params = {
+#     'objective': 'binary:logistic',
+#     'learning_rate': 0.01,
+#     'max_depth': 8,
+#     'subsample': 0.8,
+#     'colsample_bytree': 0.8,
+#     'eval_metric': 'logloss',
+#     'seed': 42
+# }
+#
+# # Evaluation sets
+# #evals = [(dtrain, 'train'), (dtest, 'eval')]
+#
+# # Train with early stopping
+# bst = xgb.train(
+#     params=params,
+#     dtrain=dtrain,
+#     num_boost_round=300,
+#     verbose_eval=True
+# )
+#
+# y_prob_xgb = bst.predict(dtest)
+# # Make predictions
+# y_pred_xgb = (y_prob_xgb > 0.5).astype(int)
+#
+# #rr = RidgeClassifier(alpha=1)
+#
+# tensorboard_callback = tf.keras.callbacks.TensorBoard(
+#     log_dir="C:/Users/steve/PycharmProjects/machine-learning/logs",
+#     histogram_freq=1,  # How often to log histogram visualizations
+#     embeddings_freq=1,  # How often to log embedding visualizations
+#     update_freq="epoch",
+# )
+#
+# early_stop = tf.keras.callbacks.EarlyStopping(
+#     patience=20, restore_best_weights=True, monitor='val_loss'
+# )
+#
+# nn_model = tf.keras.Sequential([
+#     tf.keras.layers.Input(shape=(1192,)),
+#     tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
+#     tf.keras.layers.Dropout(0.2),
+#     tf.keras.layers.Dense(128, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(1e-4)),
+#     tf.keras.layers.Dropout(0.2),
+#     tf.keras.layers.Dense(1, activation='sigmoid')
+# ])
+#
+# nn_model.compile(optimizer=tf.keras.optimizers.Adam(1e-4), loss='binary_crossentropy', metrics=['accuracy'])
+#
+# history = nn_model.fit(x_train, y_train, epochs=20, batch_size=32, validation_split=0.2, callbacks=[tensorboard_callback, early_stop])
+#
+# y_prob = nn_model.predict(x_test)
+#
+# #Convert to 0s and 1s
+# y_pred = (y_prob > 0.5).astype(int)
+#
+# games_2025_2026["home_team_win_pred_nn"] = y_pred
+# games_2025_2026["probability_home_team_win_nn"] = y_prob
+# games_2025_2026["home_team_win_pred_xgb"] = y_pred_xgb
+# games_2025_2026["probability_home_team_win_xgb"] = y_prob_xgb
+# games_2025_2026.to_csv('2025-2026-predictions.csv', index=False)
+#
+# # print("Neural Network Report:")
+# # print(classification_report(y_test,y_pred))
+# #
+# # print("XGBoost Report:")
+# # print(classification_report(y_test,y_pred_xgb))
